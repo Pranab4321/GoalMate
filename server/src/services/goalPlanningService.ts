@@ -159,7 +159,7 @@ Allowed difficulty values: easy, medium, hard.
 Allowed priority values: low, medium, high.
 `;
 
-  const response = await generateAIResponse(prompt);
-
+  const response = await generateAIResponse(prompt, true);
+  
   return parseGoalPlan(response, request.dailyAvailableHours);
 }
