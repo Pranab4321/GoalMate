@@ -65,6 +65,7 @@ export default function CreateGoalScreen() {
   const [startDate, setStartDate] = useState(new Date());
   const [deadline, setDeadline] = useState<Date | null>(null);
   const [estimatedDuration, setEstimatedDuration] = useState("30");
+  const [dailyHours, setDailyHours] = useState("2");
 
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
@@ -90,6 +91,20 @@ export default function CreateGoalScreen() {
       Alert.alert(
         "Invalid duration",
         "Please enter a valid estimated duration in days."
+      );
+      return;
+    }
+
+    const availableHours = Number(dailyHours);
+
+    if (
+      !Number.isFinite(availableHours) ||
+      availableHours <= 0 ||
+      availableHours > 24
+    ) {
+      Alert.alert(
+        "Invalid daily availability",
+        "Please enter working hours greater than 0 and no more than 24."
       );
       return;
     }
@@ -419,6 +434,32 @@ export default function CreateGoalScreen() {
               ]}
             >
               How many days do you expect to need to achieve this goal?
+            </Text>
+          </View>
+
+          {/* Daily Availability */}
+
+          <View style={styles.section}>
+            <Text style={[styles.sectionTitle, { color: colors.text }]}>
+              Daily Availability
+            </Text>
+
+            <AppInput
+              label="Available working hours per day"
+              placeholder="2"
+              value={dailyHours}
+              onChangeText={setDailyHours}
+              keyboardType="decimal-pad"
+              leftIcon={<Clock size={18} color={colors.textSecondary} />}
+            />
+
+            <Text
+              style={[
+                styles.helperText,
+                { color: colors.textSecondary },
+              ]}
+            >
+              How many hours can you dedicate to achieving this goal each day?
             </Text>
           </View>
 
