@@ -1,5 +1,6 @@
 
-import React from "react";
+import React, { useEffect, useState } from "react";
+
 import {
   Alert,
   Pressable,
@@ -7,7 +8,13 @@ import {
   StyleSheet,
   Text,
   View,
+  Modal,
+  TextInput,
+  KeyboardAvoidingView,
+  Platform,
+  Switch,
 } from "react-native";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import {
@@ -33,9 +40,235 @@ import { Radius, Spacing, Typography } from "@/theme";
 
 import AppHeader from "@/components/common/AppHeader";
 import AppCard from "@/components/common/AppCard";
+import { useSettingsStore } from "@/store/settingsStore";
+
 
 export default function ProfileScreen() {
   const colors = useTheme();
+
+  const settings = useSettingsStore((state) => state.settings);
+  const fetchSettings = useSettingsStore((state) => state.fetchSettings);
+
+  //here paste
+    const updateSettings = useSettingsStore(
+    (state) => state.updateSettings
+  );
+
+  const [isEditModalVisible, setIsEditModalVisible] = useState(false);
+  const [profileName, setProfileName] = useState("");
+  const [profileEmail, setProfileEmail] = useState("");
+  const [isSavingProfile, setIsSavingProfile] = useState(false);
+
+  const [isNotificationModalVisible, setIsNotificationModalVisible] =
+    useState(false);
+
+  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
+
+  const [dailyReminderEnabled, setDailyReminderEnabled] =
+    useState(true);
+
+  const [dailyReminderTime, setDailyReminderTime] = useState("08:00");
+  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const [isFocusSettingsVisible, setIsFocusSettingsVisible] = useState(false);
+
+  const [focusDuration, setFocusDuration] = useState("25");
+  const [shortBreakDuration, setShortBreakDuration] = useState("5");
+  const [longBreakDuration, setLongBreakDuration] = useState("15");
+
+  const [isSavingFocusSettings, setIsSavingFocusSettings] = useState(false);
+
+  useEffect(() => {
+    fetchSettings();
+  }, [fetchSettings]);
+
+  const handleOpenEditProfile = () => {
+  setProfileName(settings?.user_name || "");
+  setProfileEmail(settings?.user_email || "");
+  setIsEditModalVisible(true);
+};
+
+const handleSaveProfile = async () => {
+  const trimmedName = profileName.trim();
+  const trimmedEmail = profileEmail.trim();
+
+  if (!trimmedName) {
+    Alert.alert("Required", "Please enter your name.");
+    return;
+  }
+
+  if (
+    trimmedEmail &&
+    !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmedEmail)
+  ) {
+    Alert.alert("Invalid email", "Please enter a valid email address.");
+    return;
+  }
+
+  try {
+    setIsSavingProfile(true);
+
+    await updateSettings({
+      user_name: trimmedName,
+      user_email: trimmedEmail,
+    });
+
+    setIsEditModalVisible(false);
+
+    Alert.alert("Success", "Your profile has been updated.");
+  } catch (error) {
+    Alert.alert(
+      "Update failed",
+      "Unable to update your profile. Please try again."
+    );
+  } finally {
+    setIsSavingProfile(false);
+  }
+};
+
+const saveThemePreference = async (
+  theme: "system" | "light" | "dark"
+) => {
+  try {
+    await updateSettings({ theme });
+
+    Alert.alert(
+      "Appearance updated",
+      `Your theme preference is now ${theme}.`
+    );
+  } catch (error) {
+    Alert.alert(
+      "Update failed",
+      "Unable to save your appearance preference."
+    );
+  }
+};
+
+const handleAppearancePress = () => {
+  Alert.alert(
+    "Choose Appearance",
+    "Select your preferred theme.",
+    [
+      {
+        text: "System",
+        onPress: () => {
+          void saveThemePreference("system");
+        },
+      },
+      {
+        text: "Light",
+        onPress: () => {
+          void saveThemePreference("light");
+        },
+      },
+      {
+        text: "Dark",
+        onPress: () => {
+          void saveThemePreference("dark");
+        },
+      },
+      {
+        text: "Cancel",
+        style: "cancel",
+      },
+    ]
+  );
+};
+
+const handleOpenNotifications = () => {
+  setNotificationsEnabled(settings?.notifications_enabled ?? true);
+  setDailyReminderEnabled(settings?.daily_reminder_enabled ?? true);
+  setDailyReminderTime(settings?.daily_reminder_time || "08:00");
+
+  setIsNotificationModalVisible(true);
+};
+
+const handleSaveNotifications = async () => {
+  try {
+    await updateSettings({
+      notifications_enabled: notificationsEnabled,
+      daily_reminder_enabled: dailyReminderEnabled,
+      daily_reminder_time: dailyReminderTime,
+    });
+
+    setIsNotificationModalVisible(false);
+
+    Alert.alert(
+      "Preferences saved",
+      "Your notification preferences have been updated."
+    );
+  } catch (error) {
+    Alert.alert(
+      "Update failed",
+      "Unable to save notification preferences."
+    );
+  }
+};
+
+const handleOpenFocusSettings = () => {
+  setFocusDuration(String(settings?.pomodoro_duration ?? 25));
+  setShortBreakDuration(String(settings?.short_break_duration ?? 5));
+  setLongBreakDuration(String(settings?.long_break_duration ?? 15));
+
+  setIsFocusSettingsVisible(true);
+};
+
+const handleSaveFocusSettings = async () => {
+  const focus = Number(focusDuration);
+  const shortBreak = Number(shortBreakDuration);
+  const longBreak = Number(longBreakDuration);
+
+  if (
+    !Number.isInteger(focus) ||
+    focus < 1 ||
+    focus > 180
+  ) {
+    Alert.alert("Invalid duration", "Focus duration must be between 1 and 180 minutes.");
+    return;
+  }
+
+  if (
+    !Number.isInteger(shortBreak) ||
+    shortBreak < 1 ||
+    shortBreak > 60
+  ) {
+    Alert.alert("Invalid duration", "Short break must be between 1 and 60 minutes.");
+    return;
+  }
+
+  if (
+    !Number.isInteger(longBreak) ||
+    longBreak < 1 ||
+    longBreak > 60
+  ) {
+    Alert.alert("Invalid duration", "Long break must be between 1 and 60 minutes.");
+    return;
+  }
+
+  try {
+    setIsSavingFocusSettings(true);
+
+    await updateSettings({
+      pomodoro_duration: focus,
+      short_break_duration: shortBreak,
+      long_break_duration: longBreak,
+    });
+
+    setIsFocusSettingsVisible(false);
+
+    Alert.alert(
+      "Settings saved",
+      "Your focus and break durations have been updated."
+    );
+  } catch (error) {
+    Alert.alert(
+      "Update failed",
+      "Unable to save your focus settings. Please try again."
+    );
+  } finally {
+    setIsSavingFocusSettings(false);
+  }
+};
 
   const showComingSoon = (feature: string) => {
     Alert.alert(
@@ -49,13 +282,19 @@ export default function ProfileScreen() {
       title: "Notifications",
       subtitle: "Manage reminders and alerts",
       icon: Bell,
-      action: () => showComingSoon("Notifications"),
+      action: handleOpenNotifications,
+    },
+    {
+      title: "Focus Settings",
+      subtitle: "Customize focus and break durations",
+      icon: Clock3,
+      action: handleOpenFocusSettings,
     },
     {
       title: "Appearance",
       subtitle: "Light and dark theme preferences",
       icon: Moon,
-      action: () => showComingSoon("Appearance"),
+      action: handleAppearancePress,
     },
     {
       title: "Privacy & Security",
@@ -157,7 +396,7 @@ export default function ProfileScreen() {
                 styles.editButton,
                 { backgroundColor: colors.surfaceSecondary },
               ]}
-              onPress={() => showComingSoon("Edit profile")}
+              onPress={handleOpenEditProfile}
               accessibilityRole="button"
               accessibilityLabel="Edit profile"
             >
@@ -166,7 +405,7 @@ export default function ProfileScreen() {
           </View>
 
           <Text style={[styles.userName, { color: colors.text }]}>
-            GoalMate User
+            {settings?.user_name || "GoalMate User"}
           </Text>
 
           <Text
@@ -175,7 +414,7 @@ export default function ProfileScreen() {
               { color: colors.textSecondary },
             ]}
           >
-            Welcome to GoalMate
+            {settings?.user_email || "Welcome to GoalMate"}
           </Text>
 
           <View
@@ -329,6 +568,384 @@ export default function ProfileScreen() {
 
         <View style={styles.bottomSpace} />
       </ScrollView>
+{/* *************************** */}
+      <Modal
+  visible={isEditModalVisible}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setIsEditModalVisible(false)}
+>
+  <KeyboardAvoidingView
+    style={styles.modalOverlay}
+    behavior={Platform.OS === "ios" ? "padding" : undefined}
+  >
+    <View
+      style={[
+        styles.modalContent,
+        { backgroundColor: colors.surface },
+      ]}
+    >
+      <Text style={[styles.modalTitle, { color: colors.text }]}>
+        Edit Profile
+      </Text>
+
+      <Text style={[styles.inputLabel, { color: colors.text }]}>
+        Full Name
+      </Text>
+
+      <TextInput
+        value={profileName}
+        onChangeText={setProfileName}
+        placeholder="Enter your name"
+        placeholderTextColor={colors.textMuted}
+        style={[
+          styles.profileInput,
+          {
+            color: colors.text,
+            borderColor: colors.border,
+            backgroundColor: colors.background,
+          },
+        ]}
+        autoCapitalize="words"
+      />
+
+      <Text style={[styles.inputLabel, { color: colors.text }]}>
+        Email Address
+      </Text>
+
+      <TextInput
+        value={profileEmail}
+        onChangeText={setProfileEmail}
+        placeholder="Enter your email"
+        placeholderTextColor={colors.textMuted}
+        keyboardType="email-address"
+        autoCapitalize="none"
+        style={[
+          styles.profileInput,
+          {
+            color: colors.text,
+            borderColor: colors.border,
+            backgroundColor: colors.background,
+          },
+        ]}
+      />
+
+      <View style={styles.modalActions}>
+        <Pressable
+          onPress={() => setIsEditModalVisible(false)}
+          disabled={isSavingProfile}
+          style={[
+            styles.modalButton,
+            { backgroundColor: colors.surfaceSecondary },
+          ]}
+        >
+          <Text style={[styles.modalButtonText, { color: colors.text }]}>
+            Cancel
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={handleSaveProfile}
+          disabled={isSavingProfile}
+          style={[
+            styles.modalButton,
+            { backgroundColor: colors.primary },
+          ]}
+        >
+          <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>
+            {isSavingProfile ? "Saving..." : "Save Changes"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  </KeyboardAvoidingView>
+</Modal>
+{/* *********************** */}
+
+<Modal
+  visible={isNotificationModalVisible}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setIsNotificationModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View
+      style={[
+        styles.modalContent,
+        { backgroundColor: colors.surface },
+      ]}
+    >
+      <Text style={[styles.modalTitle, { color: colors.text }]}>
+        Notification Preferences
+      </Text>
+
+      {/* Master Notifications */}
+      <View style={styles.notificationRow}>
+        <View style={styles.notificationInfo}>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>
+            Enable Notifications
+          </Text>
+          <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+            Allow GoalMate notifications
+          </Text>
+        </View>
+
+        <Switch
+          value={notificationsEnabled}
+          onValueChange={setNotificationsEnabled}
+          trackColor={{
+            false: colors.border,
+            true: colors.primary,
+          }}
+        />
+      </View>
+
+      <View style={[styles.notificationDivider, { backgroundColor: colors.border }]} />
+
+      {/* Daily Reminder */}
+      <View style={styles.notificationRow}>
+        <View style={styles.notificationInfo}>
+          <Text style={[styles.inputLabel, { color: colors.text }]}>
+            Daily Reminder
+          </Text>
+          <Text style={[styles.settingSubtitle, { color: colors.textSecondary }]}>
+            Receive a daily reminder
+          </Text>
+        </View>
+
+        <Switch
+          value={dailyReminderEnabled}
+          onValueChange={setDailyReminderEnabled}
+          disabled={!notificationsEnabled}
+          trackColor={{
+            false: colors.border,
+            true: colors.primary,
+          }}
+        />
+      </View>
+
+      <View style={[styles.notificationDivider, { backgroundColor: colors.border }]} />
+
+      {/* Reminder Time */}
+      <Text style={[styles.inputLabel, { color: colors.text }]}>
+        Daily Reminder Time
+      </Text>
+
+      <Pressable
+        disabled={!notificationsEnabled || !dailyReminderEnabled}
+        onPress={() => setShowTimePicker(true)}
+        style={[
+          styles.reminderTimeButton,
+          {
+            backgroundColor: colors.background,
+            borderColor: colors.border,
+            opacity:
+              notificationsEnabled && dailyReminderEnabled ? 1 : 0.5,
+          },
+        ]}
+      >
+        <Clock3 size={19} color={colors.primary} />
+
+        <Text style={[styles.reminderTimeText, { color: colors.text }]}>
+          {(() => {
+            const [hours, minutes] = dailyReminderTime.split(":").map(Number);
+            const period = hours >= 12 ? "PM" : "AM";
+            const displayHours = hours % 12 || 12;
+
+            return `${String(displayHours).padStart(2, "0")}:${String(minutes).padStart(2, "0")} ${period}`;
+          })()}
+        </Text>
+
+        <Text style={{ color: colors.textSecondary }}>
+          Change time
+        </Text>
+      </Pressable>
+
+      {showTimePicker && (
+  <DateTimePicker
+    value={(() => {
+      const [hours, minutes] = dailyReminderTime.split(":").map(Number);
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    })()}
+    mode="time"
+    display={Platform.OS === "ios" ? "spinner" : "default"}
+    is24Hour={false}
+    onChange={(event, selectedDate) => {
+      if (Platform.OS === "android") {
+        setShowTimePicker(false);
+      }
+
+      if (event.type === "set" && selectedDate) {
+        const hours = String(selectedDate.getHours()).padStart(2, "0");
+        const minutes = String(selectedDate.getMinutes()).padStart(2, "0");
+
+        setDailyReminderTime(`${hours}:${minutes}`);
+      }
+    }}
+  />
+)}
+
+{showTimePicker && Platform.OS === "ios" && (
+  <Pressable
+    onPress={() => setShowTimePicker(false)}
+    style={[
+      styles.modalButton,
+      { backgroundColor: colors.primary, marginBottom: Spacing.md },
+    ]}
+  >
+    <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>
+      Done
+    </Text>
+  </Pressable>
+)}
+
+      <View style={styles.modalActions}>
+        <Pressable
+          onPress={() => setIsNotificationModalVisible(false)}
+          style={[
+            styles.modalButton,
+            { backgroundColor: colors.surfaceSecondary },
+          ]}
+        >
+          <Text style={[styles.modalButtonText, { color: colors.text }]}>
+            Cancel
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={handleSaveNotifications}
+          style={[
+            styles.modalButton,
+            { backgroundColor: colors.primary },
+          ]}
+        >
+          <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>
+            Save Preferences
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  </View>
+</Modal>
+
+
+<Modal
+  visible={isFocusSettingsVisible}
+  transparent
+  animationType="slide"
+  onRequestClose={() => setIsFocusSettingsVisible(false)}
+>
+  <KeyboardAvoidingView
+    style={styles.modalOverlay}
+    behavior={Platform.OS === "ios" ? "padding" : undefined}
+  >
+    <View
+      style={[
+        styles.modalContent,
+        { backgroundColor: colors.surface },
+      ]}
+    >
+      <Text style={[styles.modalTitle, { color: colors.text }]}>
+        Focus Settings
+      </Text>
+
+      <Text style={[styles.inputLabel, { color: colors.text }]}>
+        Focus Duration (minutes)
+      </Text>
+
+      <TextInput
+        value={focusDuration}
+        onChangeText={setFocusDuration}
+        keyboardType="number-pad"
+        maxLength={3}
+        placeholder="25"
+        placeholderTextColor={colors.textMuted}
+        style={[
+          styles.profileInput,
+          {
+            color: colors.text,
+            borderColor: colors.border,
+            backgroundColor: colors.background,
+          },
+        ]}
+      />
+
+      <Text style={[styles.inputLabel, { color: colors.text }]}>
+        Short Break (minutes)
+      </Text>
+
+      <TextInput
+        value={shortBreakDuration}
+        onChangeText={setShortBreakDuration}
+        keyboardType="number-pad"
+        maxLength={2}
+        placeholder="5"
+        placeholderTextColor={colors.textMuted}
+        style={[
+          styles.profileInput,
+          {
+            color: colors.text,
+            borderColor: colors.border,
+            backgroundColor: colors.background,
+          },
+        ]}
+      />
+
+      <Text style={[styles.inputLabel, { color: colors.text }]}>
+        Long Break (minutes)
+      </Text>
+
+      <TextInput
+        value={longBreakDuration}
+        onChangeText={setLongBreakDuration}
+        keyboardType="number-pad"
+        maxLength={2}
+        placeholder="15"
+        placeholderTextColor={colors.textMuted}
+        style={[
+          styles.profileInput,
+          {
+            color: colors.text,
+            borderColor: colors.border,
+            backgroundColor: colors.background,
+          },
+        ]}
+      />
+
+      <View style={styles.modalActions}>
+        <Pressable
+          onPress={() => setIsFocusSettingsVisible(false)}
+          disabled={isSavingFocusSettings}
+          style={[
+            styles.modalButton,
+            { backgroundColor: colors.surfaceSecondary },
+          ]}
+        >
+          <Text style={[styles.modalButtonText, { color: colors.text }]}>
+            Cancel
+          </Text>
+        </Pressable>
+
+        <Pressable
+          onPress={handleSaveFocusSettings}
+          disabled={isSavingFocusSettings}
+          style={[
+            styles.modalButton,
+            { backgroundColor: colors.primary },
+          ]}
+        >
+          <Text style={[styles.modalButtonText, { color: "#FFFFFF" }]}>
+            {isSavingFocusSettings ? "Saving..." : "Save Changes"}
+          </Text>
+        </Pressable>
+      </View>
+    </View>
+  </KeyboardAvoidingView>
+</Modal>
+
+
     </SafeAreaView>
   );
 }
@@ -513,4 +1130,92 @@ const styles = StyleSheet.create({
   bottomSpace: {
     height: Spacing.xl,
   },
+
+  modalOverlay: {
+  flex: 1,
+  backgroundColor: "rgba(0,0,0,0.5)",
+  justifyContent: "center",
+  paddingHorizontal: Spacing.lg,
+},
+
+modalContent: {
+  padding: Spacing.xl,
+  borderRadius: Radius.xl,
+},
+
+modalTitle: {
+  fontSize: Typography.fontSize.xl,
+  fontWeight: Typography.fontWeight.bold,
+  marginBottom: Spacing.xl,
+},
+
+inputLabel: {
+  fontSize: Typography.fontSize.sm,
+  fontWeight: Typography.fontWeight.semibold,
+  marginBottom: Spacing.xs,
+},
+
+profileInput: {
+  height: 48,
+  borderWidth: 1,
+  borderRadius: Radius.md,
+  paddingHorizontal: Spacing.md,
+  marginBottom: Spacing.lg,
+  fontSize: Typography.fontSize.md,
+},
+
+modalActions: {
+  flexDirection: "row",
+  gap: Spacing.md,
+  marginTop: Spacing.sm,
+},
+
+modalButton: {
+  flex: 1,
+  minHeight: 46,
+  borderRadius: Radius.md,
+  alignItems: "center",
+  justifyContent: "center",
+},
+
+modalButtonText: {
+  fontSize: Typography.fontSize.sm,
+  fontWeight: Typography.fontWeight.semibold,
+},
+
+notificationRow: {
+  flexDirection: "row",
+  alignItems: "center",
+  justifyContent: "space-between",
+  minHeight: 65,
+  gap: Spacing.md,
+},
+
+notificationInfo: {
+  flex: 1,
+  gap: 4,
+},
+
+notificationDivider: {
+  height: 1,
+  marginVertical: Spacing.md,
+},
+
+reminderTimeButton: {
+  minHeight: 50,
+  borderWidth: 1,
+  borderRadius: Radius.md,
+  paddingHorizontal: Spacing.md,
+  flexDirection: "row",
+  alignItems: "center",
+  gap: Spacing.md,
+  marginTop: Spacing.sm,
+  marginBottom: Spacing.md,
+},
+
+reminderTimeText: {
+  flex: 1,
+  fontSize: Typography.fontSize.md,
+  fontWeight: Typography.fontWeight.semibold,
+},
 });

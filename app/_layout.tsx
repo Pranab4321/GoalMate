@@ -5,6 +5,7 @@ import { StatusBar } from "expo-status-bar";
 import { ActivityIndicator, View } from "react-native";
 
 import { initializeDatabase } from "@/database/initDatabase";
+import { useSettingsStore } from "@/store/settingsStore";
 import { useTheme } from "@/hooks/use-theme";
 
 export default function RootLayout() {
@@ -19,6 +20,8 @@ export default function RootLayout() {
     async function prepareDatabase() {
       try {
         await initializeDatabase();
+
+        await useSettingsStore.getState().fetchSettings();
 
         if (isMounted) {
           setIsDatabaseReady(true);

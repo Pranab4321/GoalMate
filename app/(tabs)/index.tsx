@@ -450,12 +450,13 @@ export default function HomeScreen() {
               </Text>
             </View>
 
+
             <View style={styles.quickActions}>
               <AppButton
                 title="Create Goal"
                 onPress={() => router.push("/goal/create")}
                 leftIcon={<Plus size={18} color="#FFFFFF" />}
-                fullWidth
+                style={{ flex: 1 }}
               />
 
               <AppButton
@@ -463,9 +464,18 @@ export default function HomeScreen() {
                 variant="outline"
                 onPress={() => router.push("/(tabs)/tasks")}
                 leftIcon={<CheckCircle2 size={18} color={colors.primary} />}
-                fullWidth
+                style={{ flex: 1 }}
               />
             </View>
+
+
+              {/* Focus Timer */}
+            <AppButton
+              title="Start Focus Timer"
+              onPress={() => router.push("/focus-timer")}
+              leftIcon={<Clock3 size={18} color="#FFFFFF" />}
+              fullWidth
+            />
 
             {/* Today's tasks */}
 
