@@ -1,5 +1,8 @@
 
 import { useState } from "react";
+import { generateGoalPlan } from "@/services/goalPlanningService";
+import type { AIGoalPlan } from "@/types/ai";
+
 import {
   View,
   Text,
@@ -70,6 +73,9 @@ export default function CreateGoalScreen() {
   const [showStartPicker, setShowStartPicker] = useState(false);
   const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [generatedPlan, setGeneratedPlan] =
+    useState<AIGoalPlan | null>(null);
 
   const formatDate = (date: Date) => {
     return date.toISOString().split("T")[0];
@@ -157,6 +163,80 @@ export default function CreateGoalScreen() {
       setIsSaving(false);
     }
   };
+
+
+const handleGenerateAIPlan = async () => {
+  if (!title.trim()) {
+    Alert.alert("Missing title", "Please enter your goal title.");
+    return;
+  }
+
+  const duration = Number(estimatedDuration);
+  const availableHours = Number(dailyHours);
+
+  if (
+    !Number.isFinite(duration) ||
+    !Number.isInteger(duration) ||
+    duration < 1
+  ) {
+    Alert.alert(
+      "Invalid duration",
+      "Please enter a valid estimated duration in days."
+    );
+    return;
+  }
+
+  if (
+    !Number.isFinite(availableHours) ||
+    availableHours <= 0 ||
+    availableHours > 24
+  ) {
+    Alert.alert(
+      "Invalid daily availability",
+      "Please enter working hours greater than 0 and no more than 24."
+    );
+    return;
+  }
+
+  if (deadline && deadline < new Date(new Date().setHours(0, 0, 0, 0))) {
+    Alert.alert("Invalid deadline", "Deadline cannot be in the past.");
+    return;
+  }
+
+  if (deadline && deadline < startDate) {
+    Alert.alert("Invalid dates", "Deadline cannot be before the start date.");
+    return;
+  }
+
+  try {
+    setIsGeneratingAI(true);
+    setGeneratedPlan(null);
+
+    const plan = await generateGoalPlan({
+      goalTitle: title.trim(),
+      goalDescription: description.trim(),
+      category,
+      priority,
+      startDate: formatDate(startDate),
+      deadline: deadline ? formatDate(deadline) : undefined,
+      estimatedDurationDays: duration,
+      dailyAvailableHours: availableHours,
+    });
+
+    setGeneratedPlan(plan);
+
+  } catch (error) {
+    Alert.alert(
+      "AI Generation Failed",
+      error instanceof Error
+        ? error.message
+        : "Unable to generate your roadmap. Please try again."
+    );
+  } finally {
+    setIsGeneratingAI(false);
+  }
+};
+
 
   const renderOption = (
     label: string,
@@ -466,6 +546,17 @@ export default function CreateGoalScreen() {
           {/* Create Button */}
 
           <View style={styles.bottomSection}>
+
+              <AppButton
+                title="Generate AI Roadmap"
+                onPress={handleGenerateAIPlan}
+                loading={isGeneratingAI}
+                disabled={isGeneratingAI || isSaving}
+                fullWidth
+                size="large"
+                leftIcon={<Sparkles size={19} color="#FFFFFF" />}
+              />
+
             <AppButton
               title="Create Goal"
               onPress={handleCreateGoal}
@@ -485,6 +576,71 @@ export default function CreateGoalScreen() {
               You can edit your goal details anytime.
             </Text>
           </View>
+
+
+          {generatedPlan && (
+            <AppCard
+              style={{
+                marginTop: Spacing.xl,
+                backgroundColor: colors.surface,
+              }}
+            >
+              <Text
+                style={[
+                  styles.sectionTitle,
+                  { color: colors.text },
+                ]}
+              >
+                Your AI Roadmap
+              </Text>
+
+              <Text
+                style={[
+                  styles.helperText,
+                  { color: colors.textSecondary, marginTop: Spacing.sm },
+                ]}
+              >
+                {generatedPlan.summary}
+              </Text>
+
+              <Text
+                style={{
+                  color: colors.primary,
+                  fontWeight: "700",
+                  marginTop: Spacing.md,
+                }}
+              >
+                {generatedPlan.tasks.length} tasks generated
+              </Text>
+
+              {generatedPlan.tasks.map((task, index) => (
+                <View
+                  key={`${index}-${task.title}`}
+                  style={{ marginTop: Spacing.md }}
+                >
+                  <Text
+                    style={{
+                      color: colors.text,
+                      fontWeight: "600",
+                    }}
+                  >
+                    {index + 1}. {task.title}
+                  </Text>
+
+                  <Text
+                    style={{
+                      color: colors.textSecondary,
+                      fontSize: Typography.fontSize.xs,
+                      marginTop: Spacing.xs,
+                    }}
+                  >
+                    {task.difficulty.toUpperCase()} · {task.priority.toUpperCase()} · {task.estimated_duration} minutes
+                  </Text>
+                </View>
+              ))}
+            </AppCard>
+          )}
+
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
