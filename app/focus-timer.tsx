@@ -189,27 +189,26 @@ export default function FocusTimerScreen() {
     }
   };
 
-  const finishSession = async (
-    sessionStatus: "completed" | "interrupted"
-  ) => {
-    if (statusRef.current !== "running" && statusRef.current !== "paused") {
-      return;
-    }
+const finishSession = async (
+  sessionStatus: "completed" | "interrupted"
+) => {
+  if (statusRef.current !== "running" && statusRef.current !== "paused") {
+    return;
+  }
 
-    if (sessionStatus === "completed") {
-      elapsedBeforePauseRef.current = getElapsedSeconds();
-    }
+  // Preserve elapsed time before stopping the timer.
+  elapsedBeforePauseRef.current = getElapsedSeconds();
 
-    segmentStartRef.current = null;
-    deadlineRef.current = null;
+  segmentStartRef.current = null;
+  deadlineRef.current = null;
 
-    statusRef.current =
-      sessionStatus === "completed" ? "finished" : "idle";
+  statusRef.current =
+    sessionStatus === "completed" ? "finished" : "idle";
 
-    setStatus(statusStatusValue(sessionStatus));
+  setStatus(statusStatusValue(sessionStatus));
 
-    await saveSession(sessionStatus);
-  };
+  await saveSession(sessionStatus);
+};
 
   function statusStatusValue(
     sessionStatus: "completed" | "interrupted"

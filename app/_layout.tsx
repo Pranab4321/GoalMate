@@ -7,6 +7,7 @@ import { ActivityIndicator, View } from "react-native";
 import { initializeDatabase } from "@/database/initDatabase";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useTheme } from "@/hooks/use-theme";
+import { syncDailyReminder } from "@/services/notificationService";
 
 export default function RootLayout() {
   const theme = useTheme();
@@ -22,6 +23,15 @@ export default function RootLayout() {
         await initializeDatabase();
 
         await useSettingsStore.getState().fetchSettings();
+
+        // Restore the saved daily reminder when permission was already granted.
+        // Do not show a permission prompt during app startup.
+        const savedSettings = useSettingsStore.getState().settings;
+        if (savedSettings) {
+          syncDailyReminder(savedSettings, false).catch((error) => {
+            console.warn("Unable to restore daily reminder schedule:", error);
+          });
+        }
 
         if (isMounted) {
           setIsDatabaseReady(true);

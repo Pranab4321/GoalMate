@@ -1,5 +1,5 @@
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 
 import {
   Alert,
@@ -16,6 +16,7 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "expo-router";
 
 import {
   UserRound,
@@ -41,6 +42,64 @@ import { Radius, Spacing, Typography } from "@/theme";
 import AppHeader from "@/components/common/AppHeader";
 import AppCard from "@/components/common/AppCard";
 import { useSettingsStore } from "@/store/settingsStore";
+import { useGoalStore } from "@/store/goalStore";
+import { useTaskStore } from "@/store/taskStore";
+import { useFocusSessionStore } from "@/store/focusSessionStore";
+import { syncDailyReminder } from "@/services/notificationService";
+
+function getDateString(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+
+  return `${year}-${month}-${day}`;
+}
+
+// Keep the same local-date handling used by the Analytics screen.
+function getLocalDateFromTimestamp(
+  timestamp: string | null
+): string | null {
+  if (!timestamp) return null;
+
+  const normalized = timestamp.includes("T")
+    ? timestamp
+    : `${timestamp.replace(" ", "T")}Z`;
+
+  const date = new Date(normalized);
+
+  if (Number.isNaN(date.getTime())) return null;
+
+  return getDateString(date);
+}
+
+function calculateCurrentStreak(completedDates: Set<string>): number {
+  const today = new Date();
+  const todayString = getDateString(today);
+
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+
+  const yesterdayString = getDateString(yesterday);
+
+  let currentDate = completedDates.has(todayString)
+    ? today
+    : completedDates.has(yesterdayString)
+      ? yesterday
+      : null;
+
+  if (!currentDate) return 0;
+
+  let streak = 0;
+
+  while (completedDates.has(getDateString(currentDate))) {
+    streak += 1;
+
+    currentDate = new Date(currentDate);
+    currentDate.setDate(currentDate.getDate() - 1);
+  }
+
+  return streak;
+}
 
 
 export default function ProfileScreen() {
@@ -48,6 +107,15 @@ export default function ProfileScreen() {
 
   const settings = useSettingsStore((state) => state.settings);
   const fetchSettings = useSettingsStore((state) => state.fetchSettings);
+
+  const goals = useGoalStore((state) => state.goals);
+  const fetchGoals = useGoalStore((state) => state.fetchGoals);
+
+  const tasks = useTaskStore((state) => state.tasks);
+  const fetchTasks = useTaskStore((state) => state.fetchTasks);
+
+  const sessions = useFocusSessionStore((state) => state.sessions);
+  const fetchSessions = useFocusSessionStore((state) => state.fetchSessions);
 
   //here paste
     const updateSettings = useSettingsStore(
@@ -81,6 +149,48 @@ export default function ProfileScreen() {
   useEffect(() => {
     fetchSettings();
   }, [fetchSettings]);
+
+  // Refresh productivity data whenever the Profile tab becomes active.
+  useFocusEffect(
+    useCallback(() => {
+      Promise.all([fetchGoals(), fetchTasks(), fetchSessions()]).catch(
+        (error) => {
+          console.error("Failed to refresh profile statistics:", error);
+        }
+      );
+    }, [fetchGoals, fetchTasks, fetchSessions])
+  );
+
+  const activeGoalsCount = goals.filter(
+    (goal) => goal.status === "active"
+  ).length;
+
+  const completedTasks = tasks.filter(
+    (task) => task.status === "completed"
+  );
+
+  const completedTasksCount = completedTasks.length;
+
+  const totalFocusMinutes = sessions
+    .filter(
+      (session) =>
+        session.status === "completed" &&
+        session.session_type === "focus"
+    )
+    .reduce(
+      (total, session) => total + (session.duration || 0),
+      0
+    );
+
+  const focusHours = Number((totalFocusMinutes / 60).toFixed(1));
+
+  const completedDates = new Set<string>();
+  completedTasks.forEach((task) => {
+    const completedDate = getLocalDateFromTimestamp(task.completed_at);
+    if (completedDate) completedDates.add(completedDate);
+  });
+
+  const currentStreak = calculateCurrentStreak(completedDates);
 
   const handleOpenEditProfile = () => {
   setProfileName(settings?.user_name || "");
@@ -185,22 +295,62 @@ const handleOpenNotifications = () => {
 
 const handleSaveNotifications = async () => {
   try {
+    // Save the user's preferences first so they are never lost if the
+    // operating system declines or fails to schedule a notification.
     await updateSettings({
       notifications_enabled: notificationsEnabled,
       daily_reminder_enabled: dailyReminderEnabled,
       daily_reminder_time: dailyReminderTime,
     });
-
-    setIsNotificationModalVisible(false);
-
-    Alert.alert(
-      "Preferences saved",
-      "Your notification preferences have been updated."
-    );
   } catch (error) {
     Alert.alert(
       "Update failed",
-      "Unable to save notification preferences."
+      "Unable to save notification preferences. Please try again."
+    );
+    return;
+  }
+
+  setIsNotificationModalVisible(false);
+
+  try {
+    const result = await syncDailyReminder(
+      {
+        notifications_enabled: notificationsEnabled,
+        daily_reminder_enabled: dailyReminderEnabled,
+        daily_reminder_time: dailyReminderTime,
+      },
+      true
+    );
+
+    if (result.status === "permission-denied") {
+      Alert.alert(
+        "Preferences saved",
+        result.canAskAgain
+          ? "Your preferences were saved, but GoalMate cannot schedule the reminder until notification permission is granted. You can try saving again after allowing notifications."
+          : "Your preferences were saved, but notifications are blocked by your device. Open your phone's Settings, find GoalMate, and allow notifications."
+      );
+      return;
+    }
+
+    if (result.status === "unsupported") {
+      Alert.alert(
+        "Preferences saved",
+        "Your preferences were saved. Scheduled local reminders are not available on this platform."
+      );
+      return;
+    }
+
+    Alert.alert(
+      "Preferences saved",
+      result.status === "scheduled"
+        ? "Your daily reminder has been scheduled successfully."
+        : "Your notification preferences have been updated."
+    );
+  } catch (error) {
+    console.error("Failed to synchronize daily reminder:", error);
+    Alert.alert(
+      "Preferences saved",
+      "Your settings were saved, but GoalMate could not update the reminder schedule. Please reopen Notifications and save your preferences again."
     );
   }
 };
@@ -449,7 +599,7 @@ const handleSaveFocusSettings = async () => {
             <Target size={21} color={colors.primary} />
 
             <Text style={[styles.statValue, { color: colors.text }]}>
-              4
+              {activeGoalsCount}
             </Text>
 
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
@@ -461,7 +611,7 @@ const handleSaveFocusSettings = async () => {
             <CheckCircle2 size={21} color={colors.success} />
 
             <Text style={[styles.statValue, { color: colors.text }]}>
-              37
+              {completedTasksCount}
             </Text>
 
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
@@ -473,7 +623,7 @@ const handleSaveFocusSettings = async () => {
             <Clock3 size={21} color={colors.warning} />
 
             <Text style={[styles.statValue, { color: colors.text }]}>
-              18.5h
+              {focusHours}h
             </Text>
 
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
@@ -485,7 +635,7 @@ const handleSaveFocusSettings = async () => {
             <Flame size={21} color={colors.danger} />
 
             <Text style={[styles.statValue, { color: colors.text }]}>
-              5 Days
+              {currentStreak} Days
             </Text>
 
             <Text style={[styles.statLabel, { color: colors.textSecondary }]}>
