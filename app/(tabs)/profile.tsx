@@ -16,7 +16,7 @@ import {
 } from "react-native";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useFocusEffect } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 
 import {
   UserRound,
@@ -450,7 +450,7 @@ const handleSaveFocusSettings = async () => {
       title: "Privacy & Security",
       subtitle: "Manage your privacy settings",
       icon: ShieldCheck,
-      action: () => showComingSoon("Privacy & Security"),
+      action: () => router.push("/privacy-security"),
     },
   ];
 
@@ -459,13 +459,13 @@ const handleSaveFocusSettings = async () => {
       title: "Help & Support",
       subtitle: "Get help using GoalMate",
       icon: HelpCircle,
-      action: () => showComingSoon("Help & Support"),
+      action: () => router.push("/help-support"),
     },
     {
       title: "About GoalMate",
       subtitle: "Learn more about the application",
       icon: Info,
-      action: () => showComingSoon("About GoalMate"),
+      action: () => router.push("/about"),
     },
   ];
 

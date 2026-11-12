@@ -52,16 +52,38 @@ function parseReminderTime(time: string) {
   };
 }
 
-async function ensureAndroidNotificationChannel() {
-  if (Platform.OS !== "android") return;
+// async function ensureAndroidNotificationChannel() {
+//   if (Platform.OS !== "android") return;
 
-  await Notifications.setNotificationChannelAsync(
-    DAILY_REMINDER_CHANNEL_ID,
-    {
-      name: "Daily goal reminders",
-      importance: Notifications.AndroidImportance.DEFAULT,
-    }
-  );
+//   await Notifications.setNotificationChannelAsync(
+//     DAILY_REMINDER_CHANNEL_ID,
+//     {
+//       name: "Daily goal reminders",
+//       importance: Notifications.AndroidImportance.DEFAULT,
+//     }
+//   );
+// }
+
+async function ensureAndroidNotificationChannel() {
+  // if (Platform.OS !== "android") return;
+
+  // console.log("Android notification diagnostic:");
+  // console.log("Platform:", Platform.OS);
+  // console.log("DEFAULT importance:", Notifications.AndroidImportance.DEFAULT);
+  // console.log("MAX importance:", Notifications.AndroidImportance.MAX);
+
+  // const channels = await Notifications.getNotificationChannelsAsync();
+  // console.log("Existing notification channels:", channels);
+
+  // await Notifications.setNotificationChannelAsync(
+  //   DAILY_REMINDER_CHANNEL_ID,
+  //   {
+  //     name: "Daily goal reminders",
+  //     importance: Notifications.AndroidImportance.DEFAULT,
+  //   }
+  // );
+
+  // console.log("Notification channel created successfully.");
 }
 
 async function cancelExistingDailyReminders() {
@@ -147,9 +169,9 @@ async function performDailyReminderSync(
         Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
-      ...(Platform.OS === "android"
-        ? { channelId: DAILY_REMINDER_CHANNEL_ID }
-        : {}),
+      // ...(Platform.OS === "android"
+      //   ? { channelId: DAILY_REMINDER_CHANNEL_ID }
+      //   : {}),
     },
   });
 
