@@ -13,6 +13,10 @@ interface DeadlineFeasibilityCardProps {
   isLoading: boolean;
   hasError: boolean;
   onRetry: () => void;
+  aiExplanation: string | null;
+  isAIExplanationLoading: boolean;
+  aiExplanationError: string | null;
+  onGenerateAIExplanation: () => void;
 }
 
 const statusContent: Record<DeadlineFeasibilityStatus, { title: string; description: string; color: "success" | "warning" | "danger" | "textMuted" }> = {
@@ -43,6 +47,10 @@ export default function DeadlineFeasibilityCard({
   isLoading,
   hasError,
   onRetry,
+  aiExplanation,
+  isAIExplanationLoading,
+  aiExplanationError,
+  onGenerateAIExplanation,
 }: DeadlineFeasibilityCardProps) {
   const theme = useTheme();
 
@@ -140,6 +148,45 @@ export default function DeadlineFeasibilityCard({
               {result.missingEstimateTaskCount} remaining task(s) need a valid estimate.
             </Text>
           )}
+
+          <View style={[styles.aiSection, { borderTopColor: theme.border }]}>
+            <View style={styles.aiHeader}>
+              <Text style={[styles.aiTitle, { color: theme.text }]}>AI Explanation</Text>
+              <Text style={[styles.aiCaption, { color: theme.textSecondary }]}>
+                Get practical guidance based on this calculation
+              </Text>
+            </View>
+
+            {aiExplanation ? (
+              <View style={[styles.aiExplanationBox, { backgroundColor: theme.surfaceSecondary }]}>
+                <Text style={[styles.aiExplanation, { color: theme.text }]}>{aiExplanation}</Text>
+              </View>
+            ) : null}
+
+            {aiExplanationError ? (
+              <Text style={[styles.note, { color: theme.danger }]}>{aiExplanationError}</Text>
+            ) : null}
+
+            <Pressable
+              onPress={onGenerateAIExplanation}
+              disabled={isAIExplanationLoading || isLoading || hasError || !result}
+              style={[
+                styles.aiButton,
+                { backgroundColor: theme.primary, opacity: isAIExplanationLoading ? 0.7 : 1 },
+              ]}
+            >
+              {isAIExplanationLoading ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : null}
+              <Text style={styles.aiButtonText}>
+                {isAIExplanationLoading
+                  ? "Generating explanation..."
+                  : aiExplanation
+                    ? "Refresh AI explanation"
+                    : "Get AI explanation"}
+              </Text>
+            </Pressable>
+          </View>
         </>
       )}
     </AppCard>
@@ -167,4 +214,12 @@ const styles = StyleSheet.create({
   detailValue: { fontSize: 13, fontWeight: "600" },
   note: { fontSize: 12, marginTop: 12, lineHeight: 18 },
   retryButton: { flexDirection: "row", alignItems: "center", gap: 6, marginTop: 5, alignSelf: "flex-start" },
+  aiSection: { borderTopWidth: StyleSheet.hairlineWidth, marginTop: 16, paddingTop: 14, gap: 10 },
+  aiHeader: { gap: 4 },
+  aiTitle: { fontSize: 14, fontWeight: "700" },
+  aiCaption: { fontSize: 12, lineHeight: 17 },
+  aiExplanationBox: { borderRadius: 10, padding: 12 },
+  aiExplanation: { fontSize: 13, lineHeight: 20 },
+  aiButton: { minHeight: 42, borderRadius: 10, paddingHorizontal: 14, flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8 },
+  aiButtonText: { color: "#FFFFFF", fontSize: 13, fontWeight: "700" },
 });

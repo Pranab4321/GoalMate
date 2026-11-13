@@ -34,6 +34,7 @@ import ProgressBar from "@/components/common/ProgressBar";
 import DeadlineFeasibilityCard from "@/components/goals/DeadlineFeasibilityCard";
 import { getGoalDeadlineFeasibility } from "@/services/deadlineFeasibilityDataService";
 import type { DeadlineFeasibilityResult } from "@/services/deadlineFeasibilityService";
+import { generateDeadlineFeasibilityExplanation } from "@/services/deadlineFeasibilityAIService";
 
 const categories: GoalCategory[] = [
   "Personal",
@@ -85,6 +86,9 @@ export default function GoalDetailsScreen() {
     useState<DeadlineFeasibilityResult | null>(null);
   const [isFeasibilityLoading, setIsFeasibilityLoading] = useState(false);
   const [feasibilityError, setFeasibilityError] = useState(false);
+  const [aiExplanation, setAIExplanation] = useState<string | null>(null);
+  const [isAIExplanationLoading, setIsAIExplanationLoading] = useState(false);
+  const [aiExplanationError, setAIExplanationError] = useState<string | null>(null);
 
   const loadGoal = useCallback(async () => {
     try {
@@ -123,6 +127,8 @@ export default function GoalDetailsScreen() {
 
     setIsFeasibilityLoading(true);
     setFeasibilityError(false);
+    setAIExplanation(null);
+    setAIExplanationError(null);
 
     try {
       const result = await getGoalDeadlineFeasibility(id);
@@ -138,6 +144,31 @@ export default function GoalDetailsScreen() {
   useEffect(() => {
     loadFeasibility();
   }, [loadFeasibility, goal?.updated_at, goalTasks]);
+
+  const handleGenerateAIExplanation = useCallback(async () => {
+    if (!goal || !feasibility) return;
+
+    setIsAIExplanationLoading(true);
+    setAIExplanationError(null);
+
+    try {
+      const explanation = await generateDeadlineFeasibilityExplanation({
+        goalTitle: goal.title,
+        deadline: goal.deadline,
+        result: feasibility,
+      });
+      setAIExplanation(explanation);
+    } catch (error) {
+      console.error("Failed to generate deadline feasibility explanation:", error);
+      setAIExplanationError(
+        error instanceof Error
+          ? error.message
+          : "Unable to generate an AI explanation. Please try again."
+      );
+    } finally {
+      setIsAIExplanationLoading(false);
+    }
+  }, [goal, feasibility]);
 
   const completedTasks = goalTasks.filter(
     (task) => task.status === "completed"
@@ -651,6 +682,10 @@ export default function GoalDetailsScreen() {
               isLoading={isFeasibilityLoading}
               hasError={feasibilityError}
               onRetry={loadFeasibility}
+              aiExplanation={aiExplanation}
+              isAIExplanationLoading={isAIExplanationLoading}
+              aiExplanationError={aiExplanationError}
+              onGenerateAIExplanation={handleGenerateAIExplanation}
             />
 
             {/* Tasks */}
