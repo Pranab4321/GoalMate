@@ -31,6 +31,9 @@ import AppButton from "@/components/common/AppButton";
 import AppInput from "@/components/common/AppInput";
 import AppHeader from "@/components/common/AppHeader";
 import ProgressBar from "@/components/common/ProgressBar";
+import DeadlineFeasibilityCard from "@/components/goals/DeadlineFeasibilityCard";
+import { getGoalDeadlineFeasibility } from "@/services/deadlineFeasibilityDataService";
+import type { DeadlineFeasibilityResult } from "@/services/deadlineFeasibilityService";
 
 const categories: GoalCategory[] = [
   "Personal",
@@ -78,6 +81,10 @@ export default function GoalDetailsScreen() {
   const [priority, setPriority] = useState<GoalPriority>("medium");
   const [duration, setDuration] = useState("");
   const [dailyHours, setDailyHours] = useState("2");
+  const [feasibility, setFeasibility] =
+    useState<DeadlineFeasibilityResult | null>(null);
+  const [isFeasibilityLoading, setIsFeasibilityLoading] = useState(false);
+  const [feasibilityError, setFeasibilityError] = useState(false);
 
   const loadGoal = useCallback(async () => {
     try {
@@ -110,6 +117,27 @@ export default function GoalDetailsScreen() {
     () => tasks.filter((task) => task.goal_id === id),
     [tasks, id]
   );
+
+  const loadFeasibility = useCallback(async () => {
+    if (!id) return;
+
+    setIsFeasibilityLoading(true);
+    setFeasibilityError(false);
+
+    try {
+      const result = await getGoalDeadlineFeasibility(id);
+      setFeasibility(result);
+    } catch (error) {
+      console.error("Failed to calculate goal deadline feasibility:", error);
+      setFeasibilityError(true);
+    } finally {
+      setIsFeasibilityLoading(false);
+    }
+  }, [id]);
+
+  useEffect(() => {
+    loadFeasibility();
+  }, [loadFeasibility, goal?.updated_at, goalTasks]);
 
   const completedTasks = goalTasks.filter(
     (task) => task.status === "completed"
@@ -617,6 +645,13 @@ export default function GoalDetailsScreen() {
                 </View>
               </View>
             </AppCard>
+
+            <DeadlineFeasibilityCard
+              result={feasibility}
+              isLoading={isFeasibilityLoading}
+              hasError={feasibilityError}
+              onRetry={loadFeasibility}
+            />
 
             {/* Tasks */}
             <View style={styles.taskHeader}>
