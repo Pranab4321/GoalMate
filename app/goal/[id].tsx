@@ -9,6 +9,8 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   ArrowLeft,
   Calendar,
@@ -47,10 +49,39 @@ const categories: GoalCategory[] = [
 
 const priorities: GoalPriority[] = ["low", "medium", "high"];
 
+// Parse YYYY-MM-DD as a local date to avoid timezone shifting the displayed day.
+const parseGoalDate = (value: string | null): Date | null => {
+  if (!value) return null;
+
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (match) {
+    const year = Number(match[1]);
+    const month = Number(match[2]) - 1;
+    const day = Number(match[3]);
+    const parsed = new Date(year, month, day);
+    return parsed.getFullYear() === year && parsed.getMonth() === month && parsed.getDate() === day
+      ? parsed
+      : null;
+  }
+
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime())
+    ? null
+    : new Date(parsed.getFullYear(), parsed.getMonth(), parsed.getDate());
+};
+
+const formatGoalDateForStorage = (date: Date): string => {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
+
 export default function GoalDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const theme = useTheme();
+  const insets = useSafeAreaInsets();
 
   const {
     goals,
@@ -82,6 +113,10 @@ export default function GoalDetailsScreen() {
   const [priority, setPriority] = useState<GoalPriority>("medium");
   const [duration, setDuration] = useState("");
   const [dailyHours, setDailyHours] = useState("2");
+  const [startDate, setStartDate] = useState<Date>(new Date());
+  const [deadline, setDeadline] = useState<Date | null>(null);
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showDeadlinePicker, setShowDeadlinePicker] = useState(false);
   const [feasibility, setFeasibility] =
     useState<DeadlineFeasibilityResult | null>(null);
   const [isFeasibilityLoading, setIsFeasibilityLoading] = useState(false);
@@ -114,6 +149,8 @@ export default function GoalDetailsScreen() {
       setPriority(goal.priority);
       setDuration(String(goal.estimated_duration));
       setDailyHours(String(goal.daily_available_hours ?? 2));
+      setStartDate(parseGoalDate(goal.start_date) ?? new Date());
+      setDeadline(parseGoalDate(goal.deadline));
     }
   }, [goal]);
 
@@ -214,6 +251,11 @@ export default function GoalDetailsScreen() {
       return;
     }
 
+    if (deadline && deadline.getTime() < new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime()) {
+      Alert.alert("Invalid dates", "Deadline cannot be before the start date.");
+      return;
+    }
+
     try {
       setIsSaving(true);
 
@@ -224,6 +266,8 @@ export default function GoalDetailsScreen() {
         priority,
         estimated_duration: parsedDuration,
         daily_available_hours: parsedDailyHours,
+        start_date: formatGoalDateForStorage(startDate),
+        deadline: deadline ? formatGoalDateForStorage(deadline) : null,
       });
 
       await loadGoal();
@@ -357,8 +401,8 @@ export default function GoalDetailsScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
-     <AppHeader
-        style={{ paddingHorizontal: 16 }}
+      <AppHeader
+        style={{ paddingHorizontal: 16, paddingTop: insets.top + 8 }}
   title={isEditing ? "Edit Goal" : "Goal Details"}
   leftAction={
     <Pressable onPress={() => router.back()} style={styles.headerAction}>
@@ -402,6 +446,66 @@ export default function GoalDetailsScreen() {
                 placeholder="Describe your goal"
                 multiline
               />
+
+              <Text style={[styles.label, { color: theme.text }]}>
+                Goal Timeline
+              </Text>
+
+              <View style={styles.dateFieldContainer}>
+                <Text style={[styles.label, { color: theme.text }]}>Start Date</Text>
+                <Pressable
+                  onPress={() => setShowStartPicker(true)}
+                  style={[styles.dateField, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                >
+                  <Calendar size={19} color={theme.primary} />
+                  <Text style={[styles.dateText, { color: theme.text }]}>
+                    {startDate.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })}
+                  </Text>
+                </Pressable>
+              </View>
+
+              <View style={styles.dateFieldContainer}>
+                <Text style={[styles.label, { color: theme.text }]}>Deadline (Optional)</Text>
+                <Pressable
+                  onPress={() => setShowDeadlinePicker(true)}
+                  style={[styles.dateField, { backgroundColor: theme.surface, borderColor: theme.border }]}
+                >
+                  <Calendar size={19} color={theme.primary} />
+                  <Text style={[styles.dateText, { color: deadline ? theme.text : theme.textMuted }]}>
+                    {deadline
+                      ? deadline.toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" })
+                      : "Select deadline"}
+                  </Text>
+                </Pressable>
+                {deadline ? (
+                  <Pressable onPress={() => setDeadline(null)}>
+                    <Text style={[styles.clearDate, { color: theme.danger }]}>Remove deadline</Text>
+                  </Pressable>
+                ) : null}
+              </View>
+
+              {showStartPicker ? (
+                <DateTimePicker
+                  value={startDate}
+                  mode="date"
+                  onChange={(_, selectedDate) => {
+                    setShowStartPicker(false);
+                    if (selectedDate) setStartDate(selectedDate);
+                  }}
+                />
+              ) : null}
+
+              {showDeadlinePicker ? (
+                <DateTimePicker
+                  value={deadline ?? startDate}
+                  mode="date"
+                  minimumDate={startDate}
+                  onChange={(_, selectedDate) => {
+                    setShowDeadlinePicker(false);
+                    if (selectedDate) setDeadline(selectedDate);
+                  }}
+                />
+              ) : null}
 
               <Text style={[styles.label, { color: theme.text }]}>
                 Category
@@ -869,6 +973,26 @@ const styles = StyleSheet.create({
     fontSize: 17,
     fontWeight: "700",
     marginBottom: 16,
+  },
+  dateFieldContainer: {
+    gap: 8,
+    marginBottom: 12,
+  },
+  dateField: {
+    minHeight: 52,
+    borderWidth: 1,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 14,
+    gap: 12,
+  },
+  dateText: {
+    fontSize: 14,
+  },
+  clearDate: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   progressHeader: {
     flexDirection: "row",
