@@ -1,10 +1,8 @@
-
 import { Platform } from "react-native";
 import * as Notifications from "expo-notifications";
 
 import type { UserSettings } from "@/types/settings";
 
-const DAILY_REMINDER_CHANNEL_ID = "goalmate-daily-reminders";
 const DAILY_REMINDER_TAG = "goalmate-daily-reminder";
 
 Notifications.setNotificationHandler({
@@ -24,9 +22,9 @@ export type DailyReminderSyncResult =
 
 type ReminderSettings = Pick<
   UserSettings,
-  "notifications_enabled" |
-  "daily_reminder_enabled" |
-  "daily_reminder_time"
+  | "notifications_enabled"
+  | "daily_reminder_enabled"
+  | "daily_reminder_time"
 >;
 
 function hasNotificationPermission(
@@ -50,40 +48,6 @@ function parseReminderTime(time: string) {
     hour: Number(match[1]),
     minute: Number(match[2]),
   };
-}
-
-// async function ensureAndroidNotificationChannel() {
-//   if (Platform.OS !== "android") return;
-
-//   await Notifications.setNotificationChannelAsync(
-//     DAILY_REMINDER_CHANNEL_ID,
-//     {
-//       name: "Daily goal reminders",
-//       importance: Notifications.AndroidImportance.DEFAULT,
-//     }
-//   );
-// }
-
-async function ensureAndroidNotificationChannel() {
-  // if (Platform.OS !== "android") return;
-
-  // console.log("Android notification diagnostic:");
-  // console.log("Platform:", Platform.OS);
-  // console.log("DEFAULT importance:", Notifications.AndroidImportance.DEFAULT);
-  // console.log("MAX importance:", Notifications.AndroidImportance.MAX);
-
-  // const channels = await Notifications.getNotificationChannelsAsync();
-  // console.log("Existing notification channels:", channels);
-
-  // await Notifications.setNotificationChannelAsync(
-  //   DAILY_REMINDER_CHANNEL_ID,
-  //   {
-  //     name: "Daily goal reminders",
-  //     importance: Notifications.AndroidImportance.DEFAULT,
-  //   }
-  // );
-
-  // console.log("Notification channel created successfully.");
 }
 
 async function cancelExistingDailyReminders() {
@@ -126,8 +90,6 @@ async function performDailyReminderSync(
     settings.daily_reminder_time
   );
 
-  await ensureAndroidNotificationChannel();
-
   let permission = await Notifications.getPermissionsAsync();
 
   if (
@@ -165,13 +127,9 @@ async function performDailyReminderSync(
       },
     },
     trigger: {
-      type:
-        Notifications.SchedulableTriggerInputTypes.DAILY,
+      type: Notifications.SchedulableTriggerInputTypes.DAILY,
       hour,
       minute,
-      // ...(Platform.OS === "android"
-      //   ? { channelId: DAILY_REMINDER_CHANNEL_ID }
-      //   : {}),
     },
   });
 
