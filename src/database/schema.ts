@@ -29,6 +29,7 @@ export async function createTables(
       deadline TEXT,
 
       estimated_duration INTEGER DEFAULT 0,
+      daily_available_hours REAL NOT NULL DEFAULT 2,
 
       progress REAL NOT NULL DEFAULT 0
         CHECK(progress >= 0 AND progress <= 100),
@@ -193,4 +194,20 @@ export async function createTables(
     CREATE INDEX IF NOT EXISTS idx_activity_date
     ON daily_activity(activity_date);
   `);
+
+  // Safely add the per-goal availability column to existing installations.
+  // New installations already have this column from CREATE TABLE above.
+  const goalColumns = await db.getAllAsync<{ name: string }>(
+    "PRAGMA table_info(goals);"
+  );
+
+  const hasDailyAvailability = goalColumns.some(
+    (column) => column.name === "daily_available_hours"
+  );
+
+  if (!hasDailyAvailability) {
+    await db.execAsync(
+      "ALTER TABLE goals ADD COLUMN daily_available_hours REAL NOT NULL DEFAULT 2;"
+    );
+  }
 }

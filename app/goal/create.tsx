@@ -149,6 +149,7 @@ const fetchTasks = useTaskStore((state) => state.fetchTasks);
         start_date: formatDate(startDate),
         deadline: deadline ? formatDate(deadline) : undefined,
         estimated_duration: duration,
+        daily_available_hours: availableHours,
       });
 
       Alert.alert(
@@ -306,6 +307,20 @@ const removeGeneratedTask = (index: number) => {
       return;
     }
 
+    const availableHours = Number(dailyHours);
+
+    if (
+      !Number.isFinite(availableHours) ||
+      availableHours <= 0 ||
+      availableHours > 24
+    ) {
+      Alert.alert(
+        "Invalid daily availability",
+        "Please enter working hours greater than 0 and no more than 24."
+      );
+      return;
+    }
+
     // Validate all edited tasks before saving anything.
     const invalidTask = generatedPlan.tasks.some(
       (task) =>
@@ -336,6 +351,7 @@ const removeGeneratedTask = (index: number) => {
         start_date: formatDate(startDate),
         deadline: deadline ? formatDate(deadline) : undefined,
         estimated_duration: Number(estimatedDuration),
+        daily_available_hours: availableHours,
       });
 
       // Then, save every approved AI task under this goal.

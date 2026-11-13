@@ -10,6 +10,7 @@ function mapGoal(row: any): Goal {
   return {
     ...row,
     ai_generated: Boolean(row.ai_generated),
+    daily_available_hours: Number(row.daily_available_hours ?? 2),
   } as Goal;
 }
 
@@ -24,8 +25,9 @@ export async function createGoal(input: CreateGoalInput): Promise<string> {
   await db.runAsync(
     `INSERT INTO goals (
       id, title, description, category, priority,
-      start_date, deadline, estimated_duration, ai_generated
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      start_date, deadline, estimated_duration,
+      daily_available_hours, ai_generated
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [
       id,
       input.title.trim(),
@@ -35,6 +37,7 @@ export async function createGoal(input: CreateGoalInput): Promise<string> {
       input.start_date ?? null,
       input.deadline ?? null,
       input.estimated_duration ?? 0,
+      input.daily_available_hours ?? 2,
       input.ai_generated ? 1 : 0,
     ]
   );
@@ -93,6 +96,7 @@ export async function updateGoal(
     "start_date",
     "deadline",
     "estimated_duration",
+    "daily_available_hours",
     "progress",
   ];
 

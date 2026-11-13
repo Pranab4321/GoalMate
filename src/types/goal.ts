@@ -21,6 +21,7 @@ export interface Goal {
   start_date: string | null;
   deadline: string | null;
   estimated_duration: number;
+  daily_available_hours: number;
   progress: number;
   ai_generated: boolean;
   created_at: string;
@@ -35,6 +36,7 @@ export interface CreateGoalInput {
   start_date?: string;
   deadline?: string;
   estimated_duration?: number;
+  daily_available_hours?: number;
   ai_generated?: boolean;
 }
 
@@ -47,5 +49,6 @@ export interface UpdateGoalInput {
   start_date?: string | null;
   deadline?: string | null;
   estimated_duration?: number;
+  daily_available_hours?: number;
   progress?: number;
 }

@@ -77,6 +77,7 @@ export default function GoalDetailsScreen() {
   const [category, setCategory] = useState<GoalCategory>("Personal");
   const [priority, setPriority] = useState<GoalPriority>("medium");
   const [duration, setDuration] = useState("");
+  const [dailyHours, setDailyHours] = useState("2");
 
   const loadGoal = useCallback(async () => {
     try {
@@ -101,6 +102,7 @@ export default function GoalDetailsScreen() {
       setCategory(goal.category);
       setPriority(goal.priority);
       setDuration(String(goal.estimated_duration));
+      setDailyHours(String(goal.daily_available_hours ?? 2));
     }
   }, [goal]);
 
@@ -139,6 +141,20 @@ export default function GoalDetailsScreen() {
       return;
     }
 
+    const parsedDailyHours = Number(dailyHours);
+
+    if (
+      !Number.isFinite(parsedDailyHours) ||
+      parsedDailyHours <= 0 ||
+      parsedDailyHours > 24
+    ) {
+      Alert.alert(
+        "Validation",
+        "Enter working hours greater than 0 and no more than 24."
+      );
+      return;
+    }
+
     try {
       setIsSaving(true);
 
@@ -148,6 +164,7 @@ export default function GoalDetailsScreen() {
         category,
         priority,
         estimated_duration: parsedDuration,
+        daily_available_hours: parsedDailyHours,
       });
 
       await loadGoal();
@@ -282,6 +299,7 @@ export default function GoalDetailsScreen() {
   return (
     <View style={[styles.container, { backgroundColor: theme.background }]}>
      <AppHeader
+        style={{ paddingHorizontal: 16 }}
   title={isEditing ? "Edit Goal" : "Goal Details"}
   leftAction={
     <Pressable onPress={() => router.back()} style={styles.headerAction}>
@@ -399,6 +417,14 @@ export default function GoalDetailsScreen() {
                 onChangeText={setDuration}
                 keyboardType="numeric"
                 placeholder="e.g. 30"
+              />
+
+              <AppInput
+                label="Available Working Hours per Day"
+                value={dailyHours}
+                onChangeText={setDailyHours}
+                keyboardType="decimal-pad"
+                placeholder="e.g. 2"
               />
 
               <AppButton
@@ -575,6 +601,18 @@ export default function GoalDetailsScreen() {
                   </Text>
                   <Text style={[styles.infoValue, { color: theme.text }]}>
                     {goal.estimated_duration} days
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.infoRow}>
+                <Clock size={19} color={theme.primary} />
+                <View style={{ flex: 1 }}>
+                  <Text style={{ color: theme.textSecondary }}>
+                    Daily Available Time
+                  </Text>
+                  <Text style={[styles.infoValue, { color: theme.text }]}>
+                    {goal.daily_available_hours ?? 2} hours per day
                   </Text>
                 </View>
               </View>
@@ -849,7 +887,7 @@ const styles = StyleSheet.create({
     borderRadius: 20,
   },
   headerAction: {
-  padding: 8,
+  padding: 8, 
   alignItems: "center",
   justifyContent: "center",
 },
