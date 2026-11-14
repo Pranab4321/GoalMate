@@ -14,6 +14,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import {
   ArrowLeft,
   Calendar,
+  CalendarClock,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -339,6 +340,13 @@ export default function GoalDetailsScreen() {
   const handleAddTask = () => {
     router.push({
       pathname: "/task/create",
+      params: { goalId: id },
+    });
+  };
+
+  const handleOpenRescheduling = () => {
+    router.push({
+      pathname: "/reschedule/[goalId]",
       params: { goalId: id },
     });
   };
@@ -882,6 +890,17 @@ export default function GoalDetailsScreen() {
               <Text style={[styles.sectionTitle, { color: theme.text }]}>
                 Goal Actions
               </Text>
+
+              {goal.status === "active" ? (
+                <AppButton
+                  title="Review Task Rescheduling"
+                  onPress={handleOpenRescheduling}
+                  variant="outline"
+                  fullWidth
+                  leftIcon={<CalendarClock size={18} color={theme.primary} />}
+                  style={{ marginBottom: 12 }}
+                />
+              ) : null}
 
               <AppButton
                 title={
