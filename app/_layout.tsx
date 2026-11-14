@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
@@ -6,6 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 
 import { initializeDatabase } from "@/database/initDatabase";
 import { useSettingsStore } from "@/store/settingsStore";
+import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/hooks/use-theme";
 import { syncDailyReminder } from "@/services/notificationService";
 
@@ -32,6 +32,10 @@ export default function RootLayout() {
             console.warn("Unable to restore daily reminder schedule:", error);
           });
         }
+
+        // Restore an existing authentication session in the background.
+        // Do not block database startup or guest-mode access on network availability.
+        void useAuthStore.getState().restoreSession();
 
         if (isMounted) {
           setIsDatabaseReady(true);

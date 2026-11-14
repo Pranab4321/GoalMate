@@ -41,6 +41,8 @@ import { Radius, Spacing, Typography } from "@/theme";
 
 import AppHeader from "@/components/common/AppHeader";
 import AppCard from "@/components/common/AppCard";
+import AppButton from "@/components/common/AppButton";
+import { useAuthStore } from "@/store/authStore";
 import { useSettingsStore } from "@/store/settingsStore";
 import { useGoalStore } from "@/store/goalStore";
 import { useTaskStore } from "@/store/taskStore";
@@ -107,6 +109,10 @@ export default function ProfileScreen() {
 
   const settings = useSettingsStore((state) => state.settings);
   const fetchSettings = useSettingsStore((state) => state.fetchSettings);
+
+  // Online account state is separate from the local editable profile.
+  const authUser = useAuthStore((state) => state.user);
+  const authIsInitialized = useAuthStore((state) => state.isInitialized);
 
   const goals = useGoalStore((state) => state.goals);
   const fetchGoals = useGoalStore((state) => state.fetchGoals);
@@ -586,6 +592,71 @@ const handleSaveFocusSettings = async () => {
           </View>
         </AppCard>
 
+        {/* GoalMate Account */}
+
+        <AppCard style={styles.accountCard}>
+          <View style={styles.accountHeader}>
+            <View
+              style={[
+                styles.accountIcon,
+                { backgroundColor: colors.primary + "20" },
+              ]}
+            >
+              <ShieldCheck size={22} color={colors.primary} />
+            </View>
+
+            <View style={styles.accountInfo}>
+              <Text style={[styles.accountTitle, { color: colors.text }]}>
+                GoalMate Account
+              </Text>
+
+              <Text
+                style={[
+                  styles.accountSubtitle,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {!authIsInitialized
+                  ? "Checking your account session..."
+                  : authUser
+                    ? "You are signed in."
+                    : "You are currently using GoalMate as a guest."}
+              </Text>
+            </View>
+          </View>
+
+          {authUser ? (
+            <View style={styles.accountUserDetails}>
+              <Text style={[styles.accountUserName, { color: colors.text }]}>
+                {authUser.name}
+              </Text>
+              <Text
+                style={[
+                  styles.accountUserEmail,
+                  { color: colors.textSecondary },
+                ]}
+              >
+                {authUser.email}
+              </Text>
+            </View>
+          ) : authIsInitialized ? (
+            <View style={styles.accountActions}>
+              <AppButton
+                title="Log In"
+                onPress={() => router.push("/login")}
+                fullWidth
+              />
+
+              <AppButton
+                title="Create Account"
+                onPress={() => router.push("/register")}
+                variant="outline"
+                fullWidth
+              />
+            </View>
+          ) : null}
+        </AppCard>
+
         {/* Productivity Summary */}
 
         <View style={styles.sectionHeader}>
@@ -703,18 +774,20 @@ const handleSaveFocusSettings = async () => {
           </Text>
         </View>
 
-        {/* Sign out placeholder */}
+        {/* Sign out will be connected to authentication in Step 8.7.8. */}
 
-        <Pressable
-          onPress={() => showComingSoon("Sign out")}
-          style={styles.logoutButton}
-        >
-          <LogOut size={19} color={colors.danger} />
+        {authUser ? (
+          <Pressable
+            onPress={() => showComingSoon("Sign out")}
+            style={styles.logoutButton}
+          >
+            <LogOut size={19} color={colors.danger} />
 
-          <Text style={[styles.logoutText, { color: colors.danger }]}>
-            Sign Out
-          </Text>
-        </Pressable>
+            <Text style={[styles.logoutText, { color: colors.danger }]}>
+              Sign Out
+            </Text>
+          </Pressable>
+        ) : null}
 
         <View style={styles.bottomSpace} />
       </ScrollView>
@@ -1115,6 +1188,58 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginTop: Spacing.xl,
     paddingVertical: Spacing["2xl"],
+  },
+
+  accountCard: {
+    marginTop: Spacing.lg,
+    gap: Spacing.md,
+  },
+
+  accountHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: Spacing.md,
+  },
+
+  accountIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: Radius.md,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  accountInfo: {
+    flex: 1,
+    gap: 4,
+  },
+
+  accountTitle: {
+    fontSize: Typography.fontSize.md,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+
+  accountSubtitle: {
+    fontSize: Typography.fontSize.xs,
+    lineHeight: Typography.lineHeight.normal,
+  },
+
+  accountUserDetails: {
+    paddingLeft: 44 + Spacing.md,
+    gap: 4,
+  },
+
+  accountUserName: {
+    fontSize: Typography.fontSize.sm,
+    fontWeight: Typography.fontWeight.semibold,
+  },
+
+  accountUserEmail: {
+    fontSize: Typography.fontSize.xs,
+  },
+
+  accountActions: {
+    gap: Spacing.sm,
   },
 
   profileTop: {
