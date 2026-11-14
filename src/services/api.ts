@@ -1,5 +1,9 @@
 
-export const API_BASE_URL = "http://10.72.167.170:5000";
+import { API_CONFIG } from "./apiConfig";
+
+// Reuse the centralized backend URL.
+// Keep this export because existing services depend on it.
+export const API_BASE_URL = API_CONFIG.BASE_URL;
 
 export async function checkBackendHealth(): Promise<boolean> {
   try {
