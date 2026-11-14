@@ -15,6 +15,7 @@ import {
   ArrowLeft,
   Calendar,
   CalendarClock,
+  TrendingUp,
   CheckCircle2,
   ChevronRight,
   Clock,
@@ -892,14 +893,30 @@ export default function GoalDetailsScreen() {
               </Text>
 
               {goal.status === "active" ? (
-                <AppButton
-                  title="Review Task Rescheduling"
-                  onPress={handleOpenRescheduling}
-                  variant="outline"
-                  fullWidth
-                  leftIcon={<CalendarClock size={18} color={theme.primary} />}
-                  style={{ marginBottom: 12 }}
-                />
+                <>
+                  <AppButton
+                    title="Review Task Rescheduling"
+                    onPress={handleOpenRescheduling}
+                    variant="outline"
+                    fullWidth
+                    leftIcon={<CalendarClock size={18} color={theme.primary} />}
+                    style={{ marginBottom: 12 }}
+                  />
+
+                  <AppButton
+                    title="What-if Simulation"
+                    onPress={() =>
+                      router.push({
+                        pathname: "/goal/what-if/[id]",
+                        params: { id },
+                      })
+                    }
+                    variant="outline"
+                    fullWidth
+                    leftIcon={<TrendingUp size={18} color={theme.primary} />}
+                    style={{ marginBottom: 12 }}
+                  />
+                </>
               ) : null}
 
               <AppButton
