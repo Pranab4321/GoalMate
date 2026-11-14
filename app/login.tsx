@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -31,8 +31,13 @@ export default function LoginScreen() {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const isSubmitting = useRef(false);
 
   async function handleLogin() {
+    if (isSubmitting.current || isLoading) {
+      return;
+    }
+
     setValidationError(null);
     clearError();
 
@@ -43,6 +48,8 @@ export default function LoginScreen() {
       return;
     }
 
+    isSubmitting.current = true;
+
     try {
       await login({
         email: normalizedEmail,
@@ -52,6 +59,8 @@ export default function LoginScreen() {
       router.replace("/(tabs)");
     } catch {
       // The authentication store provides the user-facing error message.
+    } finally {
+      isSubmitting.current = false;
     }
   }
 

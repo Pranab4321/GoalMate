@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
@@ -34,8 +34,13 @@ export default function RegisterScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [validationError, setValidationError] = useState<string | null>(null);
+  const isSubmitting = useRef(false);
 
   async function handleRegister() {
+    if (isSubmitting.current || isLoading) {
+      return;
+    }
+
     setValidationError(null);
     clearError();
 
@@ -62,6 +67,8 @@ export default function RegisterScreen() {
       return;
     }
 
+    isSubmitting.current = true;
+
     try {
       await register({
         name: trimmedName,
@@ -72,6 +79,8 @@ export default function RegisterScreen() {
       router.replace("/(tabs)");
     } catch {
       // The authentication store provides the user-facing error message.
+    } finally {
+      isSubmitting.current = false;
     }
   }
 

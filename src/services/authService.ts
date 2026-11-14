@@ -37,10 +37,6 @@ interface CurrentUserApiResponse {
   };
 }
 
-/**
- * API error that retains the HTTP status code so callers can
- * distinguish authentication failures from network/server failures.
- */
 export class AuthApiError extends Error {
   status: number;
 
@@ -51,9 +47,6 @@ export class AuthApiError extends Error {
   }
 }
 
-/**
- * Sends a request to the GoalMate backend and checks its response.
- */
 async function request<T>(
   endpoint: string,
   options: RequestInit = {}
@@ -101,9 +94,6 @@ async function request<T>(
   return payload as T;
 }
 
-/**
- * Creates a new GoalMate account.
- */
 export async function registerUser(
   input: RegisterInput
 ): Promise<AuthSession> {
@@ -118,9 +108,6 @@ export async function registerUser(
   return result.data;
 }
 
-/**
- * Logs in an existing GoalMate user.
- */
 export async function loginUser(
   input: LoginInput
 ): Promise<AuthSession> {
@@ -135,9 +122,6 @@ export async function loginUser(
   return result.data;
 }
 
-/**
- * Retrieves the profile of the currently authenticated user.
- */
 export async function getCurrentUser(
   token: string
 ): Promise<AuthUser> {

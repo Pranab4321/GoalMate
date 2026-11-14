@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { AppState, type AppStateStatus, ActivityIndicator, View } from "react-native";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
-import { ActivityIndicator, View } from "react-native";
 
 import { initializeDatabase } from "@/database/initDatabase";
 import { useSettingsStore } from "@/store/settingsStore";
@@ -14,7 +14,10 @@ export default function RootLayout() {
 
   const [isDatabaseReady, setIsDatabaseReady] = useState(false);
   const [databaseError, setDatabaseError] = useState<string | null>(null);
-
+  const appState = useRef<AppStateStatus | null | undefined>(
+    AppState.currentState as AppStateStatus | null | undefined
+  );
+  
   useEffect(() => {
     let isMounted = true;
 
@@ -24,8 +27,7 @@ export default function RootLayout() {
 
         await useSettingsStore.getState().fetchSettings();
 
-        // Restore the saved daily reminder when permission was already granted.
-        // Do not show a permission prompt during app startup.
+        // Restore the saved daily reminder without showing a permission prompt.
         const savedSettings = useSettingsStore.getState().settings;
         if (savedSettings) {
           syncDailyReminder(savedSettings, false).catch((error) => {
@@ -33,8 +35,8 @@ export default function RootLayout() {
           });
         }
 
-        // Restore an existing authentication session in the background.
-        // Do not block database startup or guest-mode access on network availability.
+        // Initial session check. Guest mode and database startup do not wait
+        // for the backend to be reachable.
         void useAuthStore.getState().restoreSession();
 
         if (isMounted) {
@@ -53,6 +55,25 @@ export default function RootLayout() {
 
     return () => {
       isMounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      const wasInBackground =
+        appState.current === "background" || appState.current === "inactive";
+
+      if (wasInBackground && nextAppState === "active") {
+        // Retry session restoration when the user returns to GoalMate.
+        // A missing token is harmless; an invalid token is handled by the store.
+        void useAuthStore.getState().restoreSession();
+      }
+
+      appState.current = nextAppState;
+    });
+
+    return () => {
+      subscription.remove();
     };
   }, []);
 

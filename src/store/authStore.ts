@@ -36,22 +36,20 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
+// Prevent simultaneous session checks when the app rapidly changes state.
+let isRestoringSession = false;
+
 export const useAuthStore = create<AuthState>((set) => ({
   user: null,
   isLoading: false,
   isInitialized: false,
   error: null,
 
-  /**
-   * Register a new account, securely save its token,
-   * and update the authenticated user in Zustand.
-   */
   register: async (input) => {
     set({ isLoading: true, error: null });
 
     try {
       const session = await registerUser(input);
-
       await saveAuthToken(session.token);
 
       set({
@@ -65,21 +63,15 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
         error: getErrorMessage(error, "Unable to create your account."),
       });
-
       throw error;
     }
   },
 
-  /**
-   * Log in an existing account, securely save its token,
-   * and update the authenticated user in Zustand.
-   */
   login: async (input) => {
     set({ isLoading: true, error: null });
 
     try {
       const session = await loginUser(input);
-
       await saveAuthToken(session.token);
 
       set({
@@ -93,18 +85,16 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
         error: getErrorMessage(error, "Unable to log in."),
       });
-
       throw error;
     }
   },
 
-  /**
-   * Restore an existing session when the app starts.
-   * A 401 response means the token is invalid or expired,
-   * so it is removed. Network and other server errors do
-   * not delete the saved token.
-   */
   restoreSession: async () => {
+    if (isRestoringSession) {
+      return;
+    }
+
+    isRestoringSession = true;
     set({ isLoading: true, error: null });
 
     try {
@@ -148,6 +138,7 @@ export const useAuthStore = create<AuthState>((set) => ({
         return;
       }
 
+      // Keep the token after network/server errors so a later retry can restore it.
       set({
         user: null,
         isLoading: false,
@@ -157,12 +148,11 @@ export const useAuthStore = create<AuthState>((set) => ({
           "Unable to restore your session. Please try again."
         ),
       });
+    } finally {
+      isRestoringSession = false;
     }
   },
 
-  /**
-   * Remove the stored token and clear the authenticated user.
-   */
   logout: async () => {
     set({ isLoading: true, error: null });
 
@@ -180,13 +170,9 @@ export const useAuthStore = create<AuthState>((set) => ({
         isLoading: false,
         error: getErrorMessage(error, "Unable to log out."),
       });
-
       throw error;
     }
   },
 
-  /**
-   * Clear the current authentication error.
-   */
   clearError: () => set({ error: null }),
 }));
