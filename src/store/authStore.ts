@@ -1,6 +1,7 @@
 import { create } from "zustand";
 
 import {
+  AuthApiError,
   getCurrentUser,
   loginUser,
   registerUser,
@@ -99,8 +100,9 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   /**
    * Restore an existing session when the app starts.
-   * If the backend is temporarily unavailable, keep the
-   * stored token so the session can be checked again later.
+   * A 401 response means the token is invalid or expired,
+   * so it is removed. Network and other server errors do
+   * not delete the saved token.
    */
   restoreSession: async () => {
     set({ isLoading: true, error: null });
@@ -127,6 +129,25 @@ export const useAuthStore = create<AuthState>((set) => ({
         error: null,
       });
     } catch (error) {
+      if (error instanceof AuthApiError && error.status === 401) {
+        try {
+          await deleteAuthToken();
+        } catch (storageError) {
+          console.warn(
+            "Unable to remove an invalid authentication token:",
+            storageError
+          );
+        }
+
+        set({
+          user: null,
+          isLoading: false,
+          isInitialized: true,
+          error: null,
+        });
+        return;
+      }
+
       set({
         user: null,
         isLoading: false,

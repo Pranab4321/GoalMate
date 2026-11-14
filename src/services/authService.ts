@@ -38,6 +38,20 @@ interface CurrentUserApiResponse {
 }
 
 /**
+ * API error that retains the HTTP status code so callers can
+ * distinguish authentication failures from network/server failures.
+ */
+export class AuthApiError extends Error {
+  status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "AuthApiError";
+    this.status = status;
+  }
+}
+
+/**
  * Sends a request to the GoalMate backend and checks its response.
  */
 async function request<T>(
@@ -76,10 +90,11 @@ async function request<T>(
   };
 
   if (!response.ok || result.success !== true) {
-    throw new Error(
+    throw new AuthApiError(
       typeof result.message === "string"
         ? result.message
-        : "The request could not be completed. Please try again."
+        : "The request could not be completed. Please try again.",
+      response.status
     );
   }
 
