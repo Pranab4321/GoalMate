@@ -113,6 +113,7 @@ export default function ProfileScreen() {
   // Online account state is separate from the local editable profile.
   const authUser = useAuthStore((state) => state.user);
   const authIsInitialized = useAuthStore((state) => state.isInitialized);
+  const logout = useAuthStore((state) => state.logout);
 
   const goals = useGoalStore((state) => state.goals);
   const fetchGoals = useGoalStore((state) => state.fetchGoals);
@@ -426,10 +427,36 @@ const handleSaveFocusSettings = async () => {
   }
 };
 
-  const showComingSoon = (feature: string) => {
+  const handleSignOut = () => {
     Alert.alert(
-      "Coming soon",
-      `${feature} settings will be available in a future update.`
+      "Sign out",
+      "Are you sure you want to sign out of your GoalMate account? Your goals, tasks, settings, and productivity data on this device will remain available.",
+      [
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+        {
+          text: "Sign Out",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await logout();
+              Alert.alert(
+                "Signed out",
+                "You are now using GoalMate as a guest."
+              );
+            } catch (error) {
+              Alert.alert(
+                "Sign out failed",
+                error instanceof Error
+                  ? error.message
+                  : "Unable to sign out. Please try again."
+              );
+            }
+          },
+        },
+      ]
     );
   };
 
@@ -561,7 +588,7 @@ const handleSaveFocusSettings = async () => {
           </View>
 
           <Text style={[styles.userName, { color: colors.text }]}>
-            {settings?.user_name || "GoalMate User"}
+            {authUser?.name || settings?.user_name || "GoalMate User"}
           </Text>
 
           <Text
@@ -570,7 +597,7 @@ const handleSaveFocusSettings = async () => {
               { color: colors.textSecondary },
             ]}
           >
-            {settings?.user_email || "Welcome to GoalMate"}
+            {authUser?.email || settings?.user_email || "Welcome to GoalMate"}
           </Text>
 
           <View
@@ -774,11 +801,9 @@ const handleSaveFocusSettings = async () => {
           </Text>
         </View>
 
-        {/* Sign out will be connected to authentication in Step 8.7.8. */}
-
         {authUser ? (
           <Pressable
-            onPress={() => showComingSoon("Sign out")}
+            onPress={handleSignOut}
             style={styles.logoutButton}
           >
             <LogOut size={19} color={colors.danger} />
