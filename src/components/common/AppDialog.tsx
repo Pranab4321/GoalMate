@@ -17,6 +17,12 @@ import AppButton from "@/components/common/AppButton";
 import { useTheme } from "@/hooks/use-theme";
 import { Radius, Spacing, Typography } from "@/theme";
 
+export interface AppDialogButton {
+  text: string;
+  style?: "default" | "cancel" | "destructive";
+  onPress?: () => void;
+}
+
 type DialogVariant = "info" | "success" | "warning" | "error" | "confirmation";
 
 interface AppDialogProps {
@@ -26,11 +32,12 @@ interface AppDialogProps {
   variant?: DialogVariant;
   confirmText?: string;
   cancelText?: string;
-  onConfirm: () => void;
+  onConfirm?: () => void;
   onCancel?: () => void;
   onDismiss?: () => void;
   loading?: boolean;
   children?: ReactNode;
+  buttons?: AppDialogButton[];
 }
 
 export default function AppDialog({
@@ -45,6 +52,7 @@ export default function AppDialog({
   onDismiss,
   loading = false,
   children,
+  buttons,
 }: AppDialogProps) {
   const colors = useTheme();
 
@@ -53,31 +61,26 @@ export default function AppDialog({
       Icon: Info,
       color: colors.primary,
       background: colors.surfaceSecondary,
-      confirmVariant: "primary" as const,
     },
     success: {
       Icon: CheckCircle2,
       color: colors.success,
       background: colors.successLight,
-      confirmVariant: "primary" as const,
     },
     warning: {
       Icon: TriangleAlert,
       color: colors.warning,
       background: colors.warningLight,
-      confirmVariant: "primary" as const,
     },
     error: {
       Icon: AlertCircle,
       color: colors.danger,
       background: colors.dangerLight,
-      confirmVariant: "danger" as const,
     },
     confirmation: {
       Icon: Info,
       color: colors.primary,
       background: colors.surfaceSecondary,
-      confirmVariant: "primary" as const,
     },
   }[variant];
 
@@ -88,8 +91,44 @@ export default function AppDialog({
       onCancel();
       return;
     }
-
     onDismiss?.();
+  };
+
+  const renderButton = (
+    label: string,
+    style: "default" | "cancel" | "destructive",
+    onPress: () => void,
+    key: string,
+  ) => (
+    <View key={key} style={styles.button}>
+      <AppButton
+        title={label}
+        onPress={onPress}
+        variant={
+          style === "destructive"
+            ? "danger"
+            : style === "cancel"
+              ? "outline"
+              : "primary"
+        }
+        fullWidth
+        disabled={loading}
+      />
+    </View>
+  );
+
+  const actionButtons = buttons?.length
+    ? buttons
+    : [
+        ...(onCancel
+          ? [{ text: cancelText, style: "cancel" as const, onPress: handleCancel }]
+          : []),
+        { text: confirmText, style: "default" as const, onPress: onConfirm },
+      ];
+
+  const closeAndRun = (callback?: () => void) => {
+    onDismiss?.();
+    callback?.();
   };
 
   return (
@@ -127,9 +166,7 @@ export default function AppDialog({
             <Icon size={27} color={variantConfig.color} strokeWidth={2.2} />
           </View>
 
-          <Text style={[styles.title, { color: colors.text }]}>
-            {title}
-          </Text>
+          <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
 
           {message ? (
             <Text style={[styles.message, { color: colors.textSecondary }]}>
@@ -140,27 +177,14 @@ export default function AppDialog({
           {children ? <View style={styles.children}>{children}</View> : null}
 
           <View style={styles.actions}>
-            {onCancel ? (
-              <View style={styles.button}>
-                <AppButton
-                  title={cancelText}
-                  onPress={handleCancel}
-                  variant="outline"
-                  fullWidth
-                  disabled={loading}
-                />
-              </View>
-            ) : null}
-
-            <View style={styles.button}>
-              <AppButton
-                title={confirmText}
-                onPress={onConfirm}
-                variant={variantConfig.confirmVariant}
-                fullWidth
-                loading={loading}
-              />
-            </View>
+            {actionButtons.map((button, index) =>
+              renderButton(
+                button.text,
+                button.style ?? "default",
+                () => closeAndRun(button.onPress),
+                `dialog-button-${index}`,
+              ),
+            )}
           </View>
         </View>
       </View>
@@ -216,10 +240,13 @@ const styles = StyleSheet.create({
   actions: {
     width: "100%",
     flexDirection: "row",
+    flexWrap: "wrap",
     gap: Spacing.sm,
     marginTop: Spacing.xl,
   },
   button: {
-    flex: 1,
+    flexGrow: 1,
+    flexBasis: 0,
+    minWidth: 100,
   },
 });

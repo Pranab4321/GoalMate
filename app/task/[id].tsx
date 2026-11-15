@@ -2,7 +2,6 @@
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,6 +22,7 @@ import {
   Flag,
   Timer,
 } from "lucide-react-native";
+import { showAppDialog } from "@/services/appDialogService";
 
 import { useTheme } from "@/hooks/use-theme";
 import { Radius, Spacing, Typography } from "@/theme";
@@ -92,7 +92,7 @@ export default function TaskDetailsScreen() {
       }
     } catch (error) {
       console.error("Unable to load task:", error);
-      Alert.alert("Error", "Unable to load task details.");
+      showAppDialog("Error", "Unable to load task details.");
     } finally {
       setIsLoading(false);
     }
@@ -195,14 +195,14 @@ export default function TaskDetailsScreen() {
     if (!task) return;
 
     if (!title.trim()) {
-      Alert.alert("Missing title", "Please enter a task title.");
+      showAppDialog("Missing title", "Please enter a task title.");
       return;
     }
 
     const duration = Number(estimatedDuration);
 
     if (!Number.isInteger(duration) || duration <= 0) {
-      Alert.alert(
+      showAppDialog(
         "Invalid duration",
         "Enter a valid estimated duration in minutes."
       );
@@ -223,10 +223,10 @@ export default function TaskDetailsScreen() {
       await loadTask();
       setIsEditing(false);
 
-      Alert.alert("Updated", "Task details saved successfully.");
+      showAppDialog("Updated", "Task details saved successfully.");
     } catch (error) {
       console.error("Task update failed:", error);
-      Alert.alert("Error", "Unable to update this task.");
+      showAppDialog("Error", "Unable to update this task.");
     } finally {
       setIsSaving(false);
     }
@@ -250,7 +250,7 @@ export default function TaskDetailsScreen() {
       await loadTask();
     } catch (error) {
       console.error("Status update failed:", error);
-      Alert.alert("Error", "Unable to update task status.");
+      showAppDialog("Error", "Unable to update task status.");
     } finally {
       setIsUpdatingStatus(false);
     }
@@ -259,7 +259,7 @@ export default function TaskDetailsScreen() {
   const handleDelete = () => {
     if (!task) return;
 
-    Alert.alert(
+    showAppDialog(
       "Delete Task",
       `Are you sure you want to delete "${task.title}"? This action cannot be undone.`,
       [
@@ -274,7 +274,7 @@ export default function TaskDetailsScreen() {
             try {
               await removeTask(task.id);
 
-              Alert.alert(
+              showAppDialog(
                 "Deleted",
                 "Task deleted successfully.",
                 [
@@ -286,7 +286,7 @@ export default function TaskDetailsScreen() {
               );
             } catch (error) {
               console.error("Task deletion failed:", error);
-              Alert.alert("Error", "Unable to delete this task.");
+              showAppDialog("Error", "Unable to delete this task.");
             }
           },
         },

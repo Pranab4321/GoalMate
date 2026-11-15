@@ -8,6 +8,7 @@ import { useSettingsStore } from "@/store/settingsStore";
 import { useAuthStore } from "@/store/authStore";
 import { useTheme } from "@/hooks/use-theme";
 import { syncDailyReminder } from "@/services/notificationService";
+import AppDialogHost from "@/components/common/AppDialogHost";
 
 export default function RootLayout() {
   const theme = useTheme();
@@ -112,6 +113,7 @@ export default function RootLayout() {
     <>
       <StatusBar style="auto" />
       <Stack screenOptions={{ headerShown: false }} />
+      <AppDialogHost />
     </>
   );
 }

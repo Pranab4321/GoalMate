@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +21,7 @@ import {
   Play,
   TrendingUp,
 } from "lucide-react-native";
+import { showAppDialog } from "@/services/appDialogService";
 
 import { useTheme } from "@/hooks/use-theme";
 import AppHeader from "@/components/common/AppHeader";
@@ -117,7 +117,7 @@ export default function WhatIfSimulationScreen() {
       const result = await getGoalById(id);
 
       if (!result) {
-        Alert.alert("Goal not found", "This goal could not be loaded.");
+        showAppDialog("Goal not found", "This goal could not be loaded.");
         router.back();
         return;
       }
@@ -128,7 +128,7 @@ export default function WhatIfSimulationScreen() {
       setSimulation(null);
     } catch (error) {
       console.error("Failed to load goal for simulation:", error);
-      Alert.alert("Error", "Unable to load this goal.");
+      showAppDialog("Error", "Unable to load this goal.");
     } finally {
       setIsLoading(false);
     }
@@ -155,7 +155,7 @@ export default function WhatIfSimulationScreen() {
       );
 
       if (!result) {
-        Alert.alert("Error", "Unable to calculate this simulation.");
+        showAppDialog("Error", "Unable to calculate this simulation.");
         return;
       }
 
@@ -163,7 +163,7 @@ export default function WhatIfSimulationScreen() {
     } catch (error) {
       console.error("What-if simulation failed:", error);
 
-      Alert.alert(
+      showAppDialog(
         "Simulation failed",
         error instanceof Error
           ? error.message

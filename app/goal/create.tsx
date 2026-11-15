@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { generateGoalPlan } from "@/services/goalPlanningService";
 import type { AIGoalPlan } from "@/types/ai";
+import { showAppDialog } from "@/services/appDialogService";
 
 import {
   View,
@@ -9,7 +10,6 @@ import {
   StyleSheet,
   ScrollView,
   Pressable,
-  Alert,
   KeyboardAvoidingView,
   Platform,
 } from "react-native";
@@ -90,7 +90,7 @@ const fetchTasks = useTaskStore((state) => state.fetchTasks);
 
   const handleCreateGoal = async () => {
     if (!title.trim()) {
-      Alert.alert("Missing title", "Please enter your goal title.");
+      showAppDialog("Missing title", "Please enter your goal title.");
       return;
     }
 
@@ -101,7 +101,7 @@ const fetchTasks = useTaskStore((state) => state.fetchTasks);
       !Number.isInteger(duration) ||
       duration < 1
     ) {
-      Alert.alert(
+      showAppDialog(
         "Invalid duration",
         "Please enter a valid estimated duration in days."
       );
@@ -115,7 +115,7 @@ const fetchTasks = useTaskStore((state) => state.fetchTasks);
       availableHours <= 0 ||
       availableHours > 24
     ) {
-      Alert.alert(
+      showAppDialog(
         "Invalid daily availability",
         "Please enter working hours greater than 0 and no more than 24."
       );
@@ -123,7 +123,7 @@ const fetchTasks = useTaskStore((state) => state.fetchTasks);
     }
 
     if (deadline && deadline < new Date(new Date().setHours(0, 0, 0, 0))) {
-      Alert.alert(
+      showAppDialog(
         "Invalid deadline",
         "Deadline cannot be in the past."
       );
@@ -131,7 +131,7 @@ const fetchTasks = useTaskStore((state) => state.fetchTasks);
     }
 
     if (deadline && deadline < startDate) {
-      Alert.alert(
+      showAppDialog(
         "Invalid dates",
         "Deadline cannot be before the start date."
       );
@@ -152,7 +152,7 @@ const fetchTasks = useTaskStore((state) => state.fetchTasks);
         daily_available_hours: availableHours,
       });
 
-      Alert.alert(
+      showAppDialog(
         "Goal created!",
         "Your new goal has been saved successfully.",
         [
@@ -163,7 +163,7 @@ const fetchTasks = useTaskStore((state) => state.fetchTasks);
         ]
       );
     } catch {
-      Alert.alert(
+      showAppDialog(
         "Creation failed",
         "Unable to save your goal. Please try again."
       );
@@ -175,7 +175,7 @@ const fetchTasks = useTaskStore((state) => state.fetchTasks);
 
 const handleGenerateAIPlan = async () => {
   if (!title.trim()) {
-    Alert.alert("Missing title", "Please enter your goal title.");
+    showAppDialog("Missing title", "Please enter your goal title.");
     return;
   }
 
@@ -187,7 +187,7 @@ const handleGenerateAIPlan = async () => {
     !Number.isInteger(duration) ||
     duration < 1
   ) {
-    Alert.alert(
+    showAppDialog(
       "Invalid duration",
       "Please enter a valid estimated duration in days."
     );
@@ -199,7 +199,7 @@ const handleGenerateAIPlan = async () => {
     availableHours <= 0 ||
     availableHours > 24
   ) {
-    Alert.alert(
+    showAppDialog(
       "Invalid daily availability",
       "Please enter working hours greater than 0 and no more than 24."
     );
@@ -207,12 +207,12 @@ const handleGenerateAIPlan = async () => {
   }
 
   if (deadline && deadline < new Date(new Date().setHours(0, 0, 0, 0))) {
-    Alert.alert("Invalid deadline", "Deadline cannot be in the past.");
+    showAppDialog("Invalid deadline", "Deadline cannot be in the past.");
     return;
   }
 
   if (deadline && deadline < startDate) {
-    Alert.alert("Invalid dates", "Deadline cannot be before the start date.");
+    showAppDialog("Invalid dates", "Deadline cannot be before the start date.");
     return;
   }
 
@@ -234,7 +234,7 @@ const handleGenerateAIPlan = async () => {
     setGeneratedPlan(plan);
 
   } catch (error) {
-    Alert.alert(
+    showAppDialog(
       "AI Generation Failed",
       error instanceof Error
         ? error.message
@@ -267,7 +267,7 @@ const updateGeneratedTask = (
 };
 
 const removeGeneratedTask = (index: number) => {
-  Alert.alert(
+  showAppDialog(
     "Remove Task",
     "Are you sure you want to remove this task from your roadmap?",
     [
@@ -295,12 +295,12 @@ const removeGeneratedTask = (index: number) => {
 
   const handleApproveAndSaveRoadmap = async () => {
     if (!generatedPlan) {
-      Alert.alert("No roadmap", "Please generate an AI roadmap first.");
+      showAppDialog("No roadmap", "Please generate an AI roadmap first.");
       return;
     }
 
     if (generatedPlan.tasks.length === 0) {
-      Alert.alert(
+      showAppDialog(
         "No tasks",
         "Your roadmap has no tasks to save. Please generate a new roadmap."
       );
@@ -314,7 +314,7 @@ const removeGeneratedTask = (index: number) => {
       availableHours <= 0 ||
       availableHours > 24
     ) {
-      Alert.alert(
+      showAppDialog(
         "Invalid daily availability",
         "Please enter working hours greater than 0 and no more than 24."
       );
@@ -330,7 +330,7 @@ const removeGeneratedTask = (index: number) => {
     );
 
     if (invalidTask) {
-      Alert.alert(
+      showAppDialog(
         "Invalid tasks",
         "Every task must have a title and a valid duration greater than zero."
       );
@@ -370,7 +370,7 @@ const removeGeneratedTask = (index: number) => {
 
       setGeneratedPlan(null);
 
-      Alert.alert(
+      showAppDialog(
         "Roadmap saved!",
         `Your goal and ${generatedPlan.tasks.length} approved tasks have been saved successfully.`,
         [
@@ -394,7 +394,7 @@ const removeGeneratedTask = (index: number) => {
         }
       }
 
-      Alert.alert(
+      showAppDialog(
         "Roadmap saving failed",
         "We could not save the complete roadmap. Please check your data and try again."
       );

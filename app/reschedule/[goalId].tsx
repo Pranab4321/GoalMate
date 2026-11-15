@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -18,6 +17,7 @@ import {
   Clock,
   RefreshCw,
 } from "lucide-react-native";
+import { showAppDialog } from "@/services/appDialogService";
 
 import { useTheme } from "@/hooks/use-theme";
 import AppHeader from "@/components/common/AppHeader";
@@ -116,7 +116,7 @@ export default function RescheduleReviewScreen() {
   const handleApply = () => {
     if (!plan || !goalId || plan.proposals.length === 0) return;
 
-    Alert.alert(
+    showAppDialog(
       "Apply proposed changes?",
       `GoalMate will update the scheduled dates of ${plan.proposals.length} task${plan.proposals.length === 1 ? "" : "s"}. Existing scheduled times and all other task details will remain unchanged.`,
       [
@@ -128,14 +128,14 @@ export default function RescheduleReviewScreen() {
             try {
               await applyRescheduleProposals(goalId, plan.proposals);
               await fetchTasks();
-              Alert.alert(
+              showAppDialog(
                 "Schedule updated",
                 `${plan.proposals.length} task${plan.proposals.length === 1 ? " was" : "s were"} rescheduled successfully.`,
                 [{ text: "Done", onPress: () => router.back() }]
               );
             } catch (applyError) {
               console.error("Failed to apply rescheduling plan:", applyError);
-              Alert.alert(
+              showAppDialog(
                 "Unable to apply schedule",
                 applyError instanceof Error
                   ? applyError.message

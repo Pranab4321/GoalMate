@@ -1,7 +1,6 @@
 
 import React, { useEffect, useState } from "react";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -20,6 +19,7 @@ import {
   Target,
   ChevronDown,
 } from "lucide-react-native";
+import { showAppDialog } from "@/services/appDialogService";
 
 import { useTheme } from "@/hooks/use-theme";
 import { Radius, Spacing, Typography } from "@/theme";
@@ -169,7 +169,7 @@ export default function CreateTaskScreen() {
       !Number.isInteger(duration) ||
       duration <= 0
     ) {
-      Alert.alert(
+      showAppDialog(
         "Invalid duration",
         "Please enter a valid duration in minutes."
       );
@@ -177,7 +177,7 @@ export default function CreateTaskScreen() {
     }
 
     if (deadline && formatDate(deadline) < formatDate(scheduledDate)) {
-      Alert.alert(
+      showAppDialog(
         "Invalid deadline",
         "The deadline cannot be before the scheduled date."
       );
@@ -201,7 +201,7 @@ export default function CreateTaskScreen() {
         estimated_duration: duration,
       });
 
-      Alert.alert(
+      showAppDialog(
         "Task created!",
         "Your task has been saved successfully.",
         [
@@ -214,7 +214,7 @@ export default function CreateTaskScreen() {
     } catch (error) {
       console.error("Task creation failed:", error);
 
-      Alert.alert(
+      showAppDialog(
         "Unable to create task",
         "Something went wrong while saving your task. Please try again."
       );

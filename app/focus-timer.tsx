@@ -1,7 +1,6 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import {
-  Alert,
   AppState,
   Pressable,
   ScrollView,
@@ -19,6 +18,7 @@ import {
   Play,
   RotateCcw,
 } from "lucide-react-native";
+import { showAppDialog } from "@/services/appDialogService";
 
 import { useTheme } from "@/hooks/use-theme";
 import { Spacing, Radius, Typography } from "@/theme";
@@ -165,18 +165,18 @@ export default function FocusTimerScreen() {
       await refreshFocusStats(getLocalDateString(new Date()));
 
       if (sessionStatus === "completed" && sessionType === "focus") {
-        Alert.alert(
+        showAppDialog(
           "Focus session completed!",
           `You focused for ${durationMinutes} minute(s). Great work!`
         );
       } else if (sessionStatus === "interrupted") {
-        Alert.alert(
+        showAppDialog(
           "Session interrupted",
           `${durationMinutes} minute(s) of activity have been saved.`
         );
       }
     } catch {
-      Alert.alert(
+      showAppDialog(
         "Saving failed",
         "Unable to save this focus session. Please try again."
       );
@@ -397,7 +397,7 @@ const finishSession = async (
       statusRef.current === "running" ||
       statusRef.current === "paused"
     ) {
-      Alert.alert(
+      showAppDialog(
         "End focus session?",
         "Leaving now will save your session as interrupted.",
         [

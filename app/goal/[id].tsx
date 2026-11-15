@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
-  Alert,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -25,6 +24,7 @@ import {
   Target,
   Trash2,
 } from "lucide-react-native";
+import { showAppDialog } from "@/services/appDialogService";
 
 import { useTheme } from "@/hooks/use-theme";
 import { useGoalStore } from "@/store/goalStore";
@@ -34,7 +34,6 @@ import AppCard from "@/components/common/AppCard";
 import AppButton from "@/components/common/AppButton";
 import AppInput from "@/components/common/AppInput";
 import AppHeader from "@/components/common/AppHeader";
-import AppDialog from "@/components/common/AppDialog";
 import ProgressBar from "@/components/common/ProgressBar";
 import DeadlineFeasibilityCard from "@/components/goals/DeadlineFeasibilityCard";
 import { getGoalDeadlineFeasibility } from "@/services/deadlineFeasibilityDataService";
@@ -109,7 +108,6 @@ export default function GoalDetailsScreen() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
-  const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -230,14 +228,14 @@ export default function GoalDetailsScreen() {
 
   const handleSave = async () => {
     if (!title.trim()) {
-      Alert.alert("Validation", "Please enter a goal title.");
+      showAppDialog("Validation", "Please enter a goal title.");
       return;
     }
 
     const parsedDuration = Number(duration);
 
     if (!Number.isInteger(parsedDuration) || parsedDuration <= 0) {
-      Alert.alert("Validation", "Enter a valid duration in days.");
+      showAppDialog("Validation", "Enter a valid duration in days.");
       return;
     }
 
@@ -248,7 +246,7 @@ export default function GoalDetailsScreen() {
       parsedDailyHours <= 0 ||
       parsedDailyHours > 24
     ) {
-      Alert.alert(
+      showAppDialog(
         "Validation",
         "Enter working hours greater than 0 and no more than 24."
       );
@@ -256,7 +254,7 @@ export default function GoalDetailsScreen() {
     }
 
     if (deadline && deadline.getTime() < new Date(startDate.getFullYear(), startDate.getMonth(), startDate.getDate()).getTime()) {
-      Alert.alert("Invalid dates", "Deadline cannot be before the start date.");
+      showAppDialog("Invalid dates", "Deadline cannot be before the start date.");
       return;
     }
 
@@ -278,10 +276,10 @@ export default function GoalDetailsScreen() {
 
       setIsEditing(false);
 
-      Alert.alert("Success", "Goal updated successfully.");
+      showAppDialog("Success", "Goal updated successfully.");
     } catch (error) {
       console.error("Failed to update goal:", error);
-      Alert.alert("Error", "Unable to update goal.");
+      showAppDialog("Error", "Unable to update goal.");
     } finally {
       setIsSaving(false);
     }
@@ -293,7 +291,7 @@ export default function GoalDetailsScreen() {
     const newStatus =
       goal.status === "completed" ? "active" : "completed";
 
-    Alert.alert(
+    showAppDialog(
       "Update Goal Status",
       `Mark this goal as ${newStatus}?`,
       [
@@ -305,7 +303,7 @@ export default function GoalDetailsScreen() {
               await editGoal(id, { status: newStatus });
               await loadGoal();
             } catch (error) {
-              Alert.alert("Error", "Unable to update goal status.");
+              showAppDialog("Error", "Unable to update goal status.");
             }
           },
         },
@@ -314,18 +312,26 @@ export default function GoalDetailsScreen() {
   };
 
   const handleDelete = () => {
-    setIsDeleteDialogVisible(true);
-  };
-
-  const confirmDelete = async () => {
-    setIsDeleteDialogVisible(false);
-
-    try {
-      await removeGoal(id);
-      router.back();
-    } catch (error) {
-      Alert.alert("Error", "Unable to delete this goal.");
-    }
+    showAppDialog(
+      "Delete Goal",
+      "Are you sure? This will permanently delete this goal and all its associated tasks.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await removeGoal(id);
+              showAppDialog("Deleted", "Goal deleted successfully.");
+              router.back();
+            } catch (error) {
+              showAppDialog("Error", "Unable to delete this goal.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   const handleTaskPress = (taskId: string) => {
@@ -939,20 +945,6 @@ export default function GoalDetailsScreen() {
           </>
         )}
       </ScrollView>
-
-      <AppDialog
-        visible={isDeleteDialogVisible}
-        title="Delete Goal?"
-        message="Are you sure you want to delete this goal? This will also permanently delete all its associated tasks."
-        variant="error"
-        confirmText="Delete"
-        cancelText="Cancel"
-        onConfirm={() => {
-          void confirmDelete();
-        }}
-        onCancel={() => setIsDeleteDialogVisible(false)}
-        onDismiss={() => setIsDeleteDialogVisible(false)}
-      />
     </View>
   );
 }
