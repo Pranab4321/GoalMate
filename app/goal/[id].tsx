@@ -34,6 +34,7 @@ import AppCard from "@/components/common/AppCard";
 import AppButton from "@/components/common/AppButton";
 import AppInput from "@/components/common/AppInput";
 import AppHeader from "@/components/common/AppHeader";
+import AppDialog from "@/components/common/AppDialog";
 import ProgressBar from "@/components/common/ProgressBar";
 import DeadlineFeasibilityCard from "@/components/goals/DeadlineFeasibilityCard";
 import { getGoalDeadlineFeasibility } from "@/services/deadlineFeasibilityDataService";
@@ -108,6 +109,7 @@ export default function GoalDetailsScreen() {
 
   const [isEditing, setIsEditing] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isDeleteDialogVisible, setIsDeleteDialogVisible] = useState(false);
 
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -312,26 +314,18 @@ export default function GoalDetailsScreen() {
   };
 
   const handleDelete = () => {
-    Alert.alert(
-      "Delete Goal",
-      "Are you sure? This will permanently delete this goal and all its associated tasks.",
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Delete",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              await removeGoal(id);
-              Alert.alert("Deleted", "Goal deleted successfully.");
-              router.back();
-            } catch (error) {
-              Alert.alert("Error", "Unable to delete this goal.");
-            }
-          },
-        },
-      ]
-    );
+    setIsDeleteDialogVisible(true);
+  };
+
+  const confirmDelete = async () => {
+    setIsDeleteDialogVisible(false);
+
+    try {
+      await removeGoal(id);
+      router.back();
+    } catch (error) {
+      Alert.alert("Error", "Unable to delete this goal.");
+    }
   };
 
   const handleTaskPress = (taskId: string) => {
@@ -945,6 +939,20 @@ export default function GoalDetailsScreen() {
           </>
         )}
       </ScrollView>
+
+      <AppDialog
+        visible={isDeleteDialogVisible}
+        title="Delete Goal?"
+        message="Are you sure you want to delete this goal? This will also permanently delete all its associated tasks."
+        variant="error"
+        confirmText="Delete"
+        cancelText="Cancel"
+        onConfirm={() => {
+          void confirmDelete();
+        }}
+        onCancel={() => setIsDeleteDialogVisible(false)}
+        onDismiss={() => setIsDeleteDialogVisible(false)}
+      />
     </View>
   );
 }
