@@ -15,6 +15,6 @@
 
 
 export const API_CONFIG = {
-  BASE_URL: "http://10.72.167.170:5000",
+  BASE_URL: "http://10.188.30.170:5000",
   AI_GENERATE_ENDPOINT: "/api/ai/generate",
 };
