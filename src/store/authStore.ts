@@ -36,6 +36,26 @@ function getErrorMessage(error: unknown, fallback: string): string {
   return error instanceof Error ? error.message : fallback;
 }
 
+async function saveSessionToken(token: string): Promise<void> {
+  try {
+    await saveAuthToken(token);
+  } catch {
+    // Remove a possibly partial/stale token so the app stays in guest mode.
+    try {
+      await deleteAuthToken();
+    } catch (cleanupError) {
+      console.warn(
+        "Unable to clean up an authentication token after secure storage failed:",
+        cleanupError
+      );
+    }
+
+    throw new Error(
+      "Your account was verified, but GoalMate couldn't securely save your login session. Please try again."
+    );
+  }
+}
+
 // Prevent simultaneous session checks when the app rapidly changes state.
 let isRestoringSession = false;
 
@@ -50,7 +70,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     try {
       const session = await registerUser(input);
-      await saveAuthToken(session.token);
+      await saveSessionToken(session.token);
 
       set({
         user: session.user,
@@ -60,7 +80,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     } catch (error) {
       set({
+        user: null,
         isLoading: false,
+        isInitialized: true,
         error: getErrorMessage(error, "Unable to create your account."),
       });
       throw error;
@@ -72,7 +94,7 @@ export const useAuthStore = create<AuthState>((set) => ({
 
     try {
       const session = await loginUser(input);
-      await saveAuthToken(session.token);
+      await saveSessionToken(session.token);
 
       set({
         user: session.user,
@@ -82,7 +104,9 @@ export const useAuthStore = create<AuthState>((set) => ({
       });
     } catch (error) {
       set({
+        user: null,
         isLoading: false,
+        isInitialized: true,
         error: getErrorMessage(error, "Unable to log in."),
       });
       throw error;
@@ -168,7 +192,10 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (error) {
       set({
         isLoading: false,
-        error: getErrorMessage(error, "Unable to log out."),
+        error: getErrorMessage(
+          error,
+          "Unable to securely sign out. Please try again."
+        ),
       });
       throw error;
     }
