@@ -262,7 +262,7 @@ export default function HomeScreen() {
                 styles.notificationButton,
                 { backgroundColor: colors.surface },
               ]}
-              onPress={() => {}}
+              onPress={() => router.push("/notifications")}
               accessibilityLabel="Notifications"
               accessibilityRole="button"
             >

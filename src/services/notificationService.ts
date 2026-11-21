@@ -27,6 +27,52 @@ type ReminderSettings = Pick<
   | "daily_reminder_time"
 >;
 
+export type DailyReminderStatus =
+  | { status: "scheduled"; permissionGranted: true }
+  | { status: "disabled"; permissionGranted: boolean }
+  | { status: "permission-denied"; permissionGranted: false; canAskAgain: boolean }
+  | { status: "not-scheduled"; permissionGranted: true }
+  | { status: "unsupported"; permissionGranted: false };
+
+/**
+ * Read the current daily reminder state without changing its schedule
+ * or requesting notification permission.
+ */
+export async function getDailyReminderStatus(
+  settings: ReminderSettings
+): Promise<DailyReminderStatus> {
+  if (Platform.OS === "web") {
+    return { status: "unsupported", permissionGranted: false };
+  }
+
+  const permission = await Notifications.getPermissionsAsync();
+  const permissionGranted = hasNotificationPermission(permission);
+  const shouldBeEnabled =
+    settings.notifications_enabled && settings.daily_reminder_enabled;
+
+  if (!shouldBeEnabled) {
+    return { status: "disabled", permissionGranted };
+  }
+
+  if (!permissionGranted) {
+    return {
+      status: "permission-denied",
+      permissionGranted: false,
+      canAskAgain: permission.canAskAgain,
+    };
+  }
+
+  const scheduled = await Notifications.getAllScheduledNotificationsAsync();
+  const hasManagedReminder = scheduled.some(
+    (notification) =>
+      notification.content.data?.goalMateNotification === DAILY_REMINDER_TAG
+  );
+
+  return hasManagedReminder
+    ? { status: "scheduled", permissionGranted: true }
+    : { status: "not-scheduled", permissionGranted: true };
+}
+
 function hasNotificationPermission(
   permission: Notifications.NotificationPermissionsStatus
 ): boolean {

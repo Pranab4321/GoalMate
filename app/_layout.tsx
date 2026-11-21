@@ -111,7 +111,9 @@ export default function RootLayout() {
 
   return (
     <>
-      <StatusBar style="auto" />
+      <StatusBar
+        style={theme.text === "#FFFFFF" ? "light" : "dark"}
+      />
       <Stack screenOptions={{ headerShown: false }} />
       <AppDialogHost />
     </>
