@@ -1,6 +1,7 @@
 
 import "dotenv/config";
 import express from "express";
+import dns from "node:dns";
 import cors from "cors";
 import authRoutes from "./routes/authRoutes.js";
 
@@ -8,6 +9,8 @@ import aiRoutes from "./routes/aiRoutes.js";
 import goalPlanningRoutes from "./routes/goalPlanningRoutes.js";
 import { connectDatabase } from "./config/database.js";
 import { authenticateToken } from "./middleware/authMiddleware.js";
+
+dns.setServers(["8.8.8.8", "1.1.1.1"]);
 
 const app = express();
 
